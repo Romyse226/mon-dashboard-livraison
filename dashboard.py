@@ -12,32 +12,31 @@ st.set_page_config(
 
 # ================= GESTION DU MODE (CLAIR/SOMBRE) =================
 if "dark_mode" not in st.session_state:
-    st.session_state.dark_mode = True  # Mode sombre par défaut
+    st.session_state.dark_mode = True 
 
-# Couleurs dynamiques selon le mode
+# Couleurs dynamiques
 bg_color = "#000000" if st.session_state.dark_mode else "#FFFFFF"
 card_bg = "#121212" if st.session_state.dark_mode else "#FFFFFF"
 text_color = "#FFFFFF" if st.session_state.dark_mode else "#000000"
 sub_text = "#BBBBBB" if st.session_state.dark_mode else "#666666"
 border_color = "#333333" if st.session_state.dark_mode else "#EEEEEE"
 
-# ================= CSS DYNAMIQUE =================
+# ================= CSS DYNAMIQUE (CORRECTION POSITION DROITE) =================
 st.markdown(f"""
 <style>
     .stApp {{ background-color: {bg_color} !important; }}
     #MainMenu, footer, header {{visibility: hidden;}}
 
-    /* Alignement du bouton Mode en haut à droite */
-    .mode-container {{
-        display: flex;
-        justify-content: flex-end;
-        padding: 0px;
+    /* POSITIONNEMENT ABSOLU DU BOUTON MODE (FORCE A DROITE) */
+    .floating-mode {{
+        position: fixed;
+        top: 15px;
+        right: 15px;
+        z-index: 99999;
     }}
 
-    /* Textes */
-    .login-text {{ color: {text_color} !important; font-weight: 600; text-align: center; }}
     .main-title {{ font-size: 1.8rem !important; font-weight: 800 !important; color: {text_color} !important; }}
-    .stMarkdown p {{ color: {sub_text} !important; }}
+    .login-text {{ color: {text_color} !important; font-weight: 600; text-align: center; }}
 
     /* Cartes */
     .card {{
@@ -66,7 +65,7 @@ st.markdown(f"""
     .badge-done {{ background-color: #1FA24A; }}
 
     /* Infos Cartes */
-    .info-line {{ margin-bottom: 4px; font-size: 1rem; color: {text_color} !important; width: 75%; }}
+    .info-line {{ margin-bottom: 4px; font-size: 1rem; color: {text_color} !important; width: 70%; }}
     .price {{ font-size: 1.3rem; font-weight: 800; color: #700D02 !important; }}
 
     /* Boutons MAVA */
@@ -104,11 +103,8 @@ st.markdown(f"""
         border-top: 1px solid {border_color};
     }}
 
-    /* Boutons de navigation (Tabs) */
-    .stTabs [data-baseweb="tab-list"] {{
-        background-color: transparent;
-        gap: 10px;
-    }}
+    /* Tabs */
+    .stTabs [data-baseweb="tab-list"] {{ background-color: transparent; gap: 10px; }}
     .stTabs [data-baseweb="tab"] {{
         background-color: {card_bg} !important;
         color: {text_color} !important;
@@ -116,21 +112,17 @@ st.markdown(f"""
         border-radius: 10px !important;
         padding: 10px 15px !important;
     }}
-    .stTabs [aria-selected="true"] {{
-        background-color: #700D02 !important;
-        color: white !important;
-    }}
+    .stTabs [aria-selected="true"] {{ background-color: #700D02 !important; color: white !important; }}
 </style>
 """, unsafe_allow_html=True)
 
-# ================= BOUTON MODE (FORCÉ À DROITE) =================
-# Utilisation de colonnes pour pousser le bouton à droite
-c1, c2, c3 = st.columns([0.8, 0.1, 0.1])
-with c3:
-    label_mode = "☀️" if st.session_state.dark_mode else "🌙"
-    if st.button(label_mode):
-        st.session_state.dark_mode = not st.session_state.dark_mode
-        st.rerun()
+# ================= BOUTON MODE EN FLOTTANT (DROITE) =================
+st.markdown('<div class="floating-mode">', unsafe_allow_html=True)
+label_mode = "☀️" if st.session_state.dark_mode else "🌙"
+if st.button(label_mode, key="mode_switch"):
+    st.session_state.dark_mode = not st.session_state.dark_mode
+    st.rerun()
+st.markdown('</div>', unsafe_allow_html=True)
 
 # ================= SUPABASE =================
 def get_supabase():
@@ -155,7 +147,7 @@ def format_price(val):
 
 # ================= LOGIN =================
 if "vendeur_phone" not in st.session_state:
-    st.markdown('<div style="text-align:center; padding-top:20px;">', unsafe_allow_html=True)
+    st.markdown('<div style="text-align:center; padding-top:40px;">', unsafe_allow_html=True)
     st.image("https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/main/mon%20logo%20mava.png", width=140)
     st.markdown(f"<h2 class='login-text'>Bienvenue</h2>", unsafe_allow_html=True)
     st.markdown(f"<p class='login-text'>Entrez votre numéro pour suivre vos commandes</p>", unsafe_allow_html=True)
@@ -173,14 +165,14 @@ else:
     # ================= DASHBOARD =================
     vendeur_phone = st.session_state.vendeur_phone
 
-    col_h1, col_h2 = st.columns([0.85, 0.15])
-    with col_h1:
-        st.markdown(f"<span class='main-title'>Mes Commandes</span>", unsafe_allow_html=True)
-    with col_h2:
-        dash_url = f"https://mava.streamlit.app/?v={vendeur_phone}"
-        if st.button("🔗"):
-            st.toast("Lien copié !")
-            st.markdown(f"""<script>navigator.clipboard.writeText("{dash_url}");</script>""", unsafe_allow_html=True)
+    # Titre aligné à gauche
+    st.markdown(f"<span class='main-title'>Mes Commandes</span>", unsafe_allow_html=True)
+    
+    # Bouton Lien Dashboard
+    dash_url = f"https://mava.streamlit.app/?v={vendeur_phone}"
+    if st.button("🔗", key="copy_btn", help="Copier le lien"):
+        st.toast("Lien copié !")
+        st.markdown(f"""<script>navigator.clipboard.writeText("{dash_url}");</script>""", unsafe_allow_html=True)
 
     try:
         res = supabase.table("orders").select("*").eq("phone_vendeur", vendeur_phone).order("created_at", desc=True).execute()
@@ -231,12 +223,11 @@ else:
                 supabase.table("orders").update({"statut": "À livrer"}).eq("id", order['id']).execute()
                 st.rerun()
 
-# ================= FOOTER PROFESSIONNEL =================
+# ================= FOOTER =================
 st.markdown(f"""
     <div class="footer">
         MAVA © 2025 • Tous droits réservés<br>
-        Plateforme de suivi logistique sécurisée<br>
-        <span style="opacity:0.5;">v2.1.0 • Stable Release</span>
+        Plateforme de suivi logistique sécurisée
     </div>
 """, unsafe_allow_html=True)
 
@@ -244,5 +235,7 @@ st.markdown(f"""
 if "last_refresh" not in st.session_state:
     st.session_state.last_refresh = time.time()
 if time.time() - st.session_state.last_refresh > 30:
+    st.session_state.last_refresh = time.time()
+    st.rerun()
     st.session_state.last_refresh = time.time()
     st.rerun()
