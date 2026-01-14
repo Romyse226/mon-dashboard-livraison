@@ -43,34 +43,53 @@ st.markdown(f"""
         margin-top: 10px;
     }}
 
-    /* Cartes & Badges */
+    /* --- NOUVEAU DESIGN : SECTIONS SÉPARÉES ET BRILLANTES --- */
     .card {{
         position: relative;
-        border-radius: 12px;
-        padding: 15px;
-        margin-bottom: 10px;
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
         background: {card_bg};
         border: 1px solid {border_color};
+        box-shadow: 0px 4px 15px rgba(0,0,0,0.4);
+        overflow: hidden;
     }}
-    .card.pending {{ border-left: 8px solid #FF0000; }}
-    .card.done {{ border-left: 8px solid #1FA24A; }}
+    
+    /* Le liseré brillant/néon à gauche */
+    .card.pending::before {{
+        content: "";
+        position: absolute;
+        left: 0; top: 0; bottom: 0;
+        width: 6px;
+        background: #FF0000;
+        box-shadow: 2px 0px 12px #FF0000;
+    }}
+    
+    .card.done::before {{
+        content: "";
+        position: absolute;
+        left: 0; top: 0; bottom: 0;
+        width: 6px;
+        background: #1FA24A;
+        box-shadow: 2px 0px 12px #1FA24A;
+    }}
 
     .badge {{
         position: absolute;
         top: 15px;
         right: 15px;
-        padding: 4px 8px;
-        border-radius: 5px;
+        padding: 5px 10px;
+        border-radius: 6px;
         font-size: 0.7rem;
         font-weight: bold;
         color: white;
     }}
-    .badge-pending {{ background-color: #FF0000; }}
-    .badge-done {{ background-color: #1FA24A; }}
+    .badge-pending {{ background-color: #FF0000; box-shadow: 0 0 8px #FF0000; }}
+    .badge-done {{ background-color: #1FA24A; box-shadow: 0 0 8px #1FA24A; }}
 
     /* Infos Cartes */
-    .info-line {{ margin-bottom: 4px; font-size: 1rem; color: {text_color} !important; width: 75%; }}
-    .price {{ font-size: 1.3rem; font-weight: 800; color: {price_color} !important; }}
+    .info-line {{ margin-bottom: 6px; font-size: 1.1rem; color: {text_color} !important; width: 85%; }}
+    .price {{ font-size: 1.5rem; font-weight: 900; color: {price_color} !important; margin-top: 10px; }}
 
     /* Boutons MAVA */
     div.stButton > button {{
