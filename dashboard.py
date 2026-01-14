@@ -27,12 +27,11 @@ st.markdown(f"""
     .stApp {{ background-color: {bg_color} !important; }}
     #MainMenu, footer, header {{visibility: hidden;}}
 
-    /* Bouton Switch Mode */
-    .mode-toggle {{
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        z-index: 999;
+    /* Alignement du bouton Mode en haut à droite */
+    .mode-container {{
+        display: flex;
+        justify-content: flex-end;
+        padding: 0px;
     }}
 
     /* Textes */
@@ -104,14 +103,32 @@ st.markdown(f"""
         font-size: 0.75rem;
         border-top: 1px solid {border_color};
     }}
+
+    /* Boutons de navigation (Tabs) */
+    .stTabs [data-baseweb="tab-list"] {{
+        background-color: transparent;
+        gap: 10px;
+    }}
+    .stTabs [data-baseweb="tab"] {{
+        background-color: {card_bg} !important;
+        color: {text_color} !important;
+        border: 1px solid {border_color} !important;
+        border-radius: 10px !important;
+        padding: 10px 15px !important;
+    }}
+    .stTabs [aria-selected="true"] {{
+        background-color: #700D02 !important;
+        color: white !important;
+    }}
 </style>
 """, unsafe_allow_html=True)
 
-# ================= BOUTON MODE (Haut à droite) =================
-col_mode1, col_mode2 = st.columns([0.8, 0.2])
-with col_mode2:
+# ================= BOUTON MODE (FORCÉ À DROITE) =================
+# Utilisation de colonnes pour pousser le bouton à droite
+c1, c2, c3 = st.columns([0.8, 0.1, 0.1])
+with c3:
     label_mode = "☀️" if st.session_state.dark_mode else "🌙"
-    if st.button(label_mode, help="Changer le mode d'affichage"):
+    if st.button(label_mode):
         st.session_state.dark_mode = not st.session_state.dark_mode
         st.rerun()
 
@@ -138,7 +155,7 @@ def format_price(val):
 
 # ================= LOGIN =================
 if "vendeur_phone" not in st.session_state:
-    st.markdown('<div style="text-align:center; padding-top:30px;">', unsafe_allow_html=True)
+    st.markdown('<div style="text-align:center; padding-top:20px;">', unsafe_allow_html=True)
     st.image("https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/main/mon%20logo%20mava.png", width=140)
     st.markdown(f"<h2 class='login-text'>Bienvenue</h2>", unsafe_allow_html=True)
     st.markdown(f"<p class='login-text'>Entrez votre numéro pour suivre vos commandes</p>", unsafe_allow_html=True)
@@ -156,7 +173,7 @@ else:
     # ================= DASHBOARD =================
     vendeur_phone = st.session_state.vendeur_phone
 
-    col_h1, col_h2 = st.columns([0.8, 0.2])
+    col_h1, col_h2 = st.columns([0.85, 0.15])
     with col_h1:
         st.markdown(f"<span class='main-title'>Mes Commandes</span>", unsafe_allow_html=True)
     with col_h2:
@@ -178,7 +195,7 @@ else:
 
     with tab1:
         if not pending:
-            st.markdown(f"<p style='text-align:center;'>Aucune commande en attente.</p>", unsafe_allow_html=True)
+            st.markdown(f"<p style='text-align:center; margin-top:20px;'>Aucune commande en attente.</p>", unsafe_allow_html=True)
         for order in pending:
             st.markdown(f"""
             <div class="card pending">
@@ -200,7 +217,7 @@ else:
 
     with tab2:
         if not done:
-            st.markdown(f"<p style='text-align:center;'>Aucune commande livrée.</p>", unsafe_allow_html=True)
+            st.markdown(f"<p style='text-align:center; margin-top:20px;'>Aucune commande livrée.</p>", unsafe_allow_html=True)
         for order in done:
             st.markdown(f"""
             <div class="card done">
