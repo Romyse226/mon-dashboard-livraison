@@ -74,7 +74,7 @@ def format_price(val):
 # ---------------- LOGIN ----------------
 if "vendeur_phone" not in st.session_state:
 
-    st.markdown("<h2 style='text-align:center;'>Connexion Livreur</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align:center;'>Connexion</h2>", unsafe_allow_html=True)
     phone = st.text_input("Numéro WhatsApp", placeholder="07XXXXXXXX")
 
     if st.button("Accéder à mes commandes"):
