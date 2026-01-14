@@ -20,23 +20,26 @@ card_bg = "#121212" if st.session_state.dark_mode else "#FFFFFF"
 text_color = "#FFFFFF" if st.session_state.dark_mode else "#000000"
 sub_text = "#BBBBBB" if st.session_state.dark_mode else "#666666"
 border_color = "#333333" if st.session_state.dark_mode else "#EEEEEE"
+price_color = "#FF0000" if st.session_state.dark_mode else "#700D02" # Rouge Vif en mode sombre
 
-# ================= CSS DYNAMIQUE (CORRECTION POSITION DROITE) =================
+# ================= CSS DYNAMIQUE =================
 st.markdown(f"""
 <style>
     .stApp {{ background-color: {bg_color} !important; }}
     #MainMenu, footer, header {{visibility: hidden;}}
 
-    /* POSITIONNEMENT ABSOLU DU BOUTON MODE (FORCE A DROITE) */
-    .floating-mode {{
-        position: fixed;
-        top: 15px;
-        right: 15px;
-        z-index: 99999;
+    /* POSITIONNEMENT DU BOUTON TOGGLE EN HAUT A DROITE SUR MOBILE */
+    .stButton {{
+        display: flex;
+        justify-content: flex-end;
     }}
-
-    .main-title {{ font-size: 1.8rem !important; font-weight: 800 !important; color: {text_color} !important; }}
-    .login-text {{ color: {text_color} !important; font-weight: 600; text-align: center; }}
+    
+    /* Titre Mes Commandes */
+    .main-title {{ 
+        font-size: 1.8rem !important; 
+        font-weight: 800 !important; 
+        color: {text_color} !important; 
+    }}
 
     /* Cartes */
     .card {{
@@ -47,7 +50,7 @@ st.markdown(f"""
         background: {card_bg};
         border: 1px solid {border_color};
     }}
-    .card.pending {{ border-left: 8px solid #700D02; }}
+    .card.pending {{ border-left: 8px solid #FF0000; }} /* Trait Rouge Vif */
     .card.done {{ border-left: 8px solid #1FA24A; }}
 
     /* Badges */
@@ -61,12 +64,12 @@ st.markdown(f"""
         font-weight: bold;
         color: white;
     }}
-    .badge-pending {{ background-color: #700D02; }}
+    .badge-pending {{ background-color: #FF0000; }}
     .badge-done {{ background-color: #1FA24A; }}
 
     /* Infos Cartes */
-    .info-line {{ margin-bottom: 4px; font-size: 1rem; color: {text_color} !important; width: 70%; }}
-    .price {{ font-size: 1.3rem; font-weight: 800; color: #700D02 !important; }}
+    .info-line {{ margin-bottom: 4px; font-size: 1rem; color: {text_color} !important; width: 75%; }}
+    .price {{ font-size: 1.3rem; font-weight: 800; color: {price_color} !important; }}
 
     /* Boutons MAVA */
     div.stButton > button {{
@@ -80,17 +83,12 @@ st.markdown(f"""
     }}
     div.stButton > button div p {{ color: white !important; }}
 
-    /* WhatsApp */
-    .btn-whatsapp {{
-        background-color: #25D366 !important;
-        color: #000 !important;
-        border-radius: 10px;
-        text-align: center;
-        padding: 12px;
-        display: block;
-        text-decoration: none;
-        font-weight: 700;
-        margin-bottom: 8px;
+    /* Bouton spécifique pour le changement de mode (Toggle) */
+    div[data-testid="column"]:nth-child(3) button, 
+    .st-emotion-cache-18ni7ve {{ 
+        width: 50px !important; 
+        background-color: transparent !important; 
+        border: 1px solid {border_color} !important;
     }}
 
     /* Footer */
@@ -103,7 +101,7 @@ st.markdown(f"""
         border-top: 1px solid {border_color};
     }}
 
-    /* Tabs */
+    /* Onglets */
     .stTabs [data-baseweb="tab-list"] {{ background-color: transparent; gap: 10px; }}
     .stTabs [data-baseweb="tab"] {{
         background-color: {card_bg} !important;
@@ -113,21 +111,22 @@ st.markdown(f"""
         padding: 10px 15px !important;
     }}
     .stTabs [aria-selected="true"] {{ background-color: #700D02 !important; color: white !important; }}
+    
+    .login-text {{ color: {text_color} !important; font-weight: 600; text-align: center; }}
 </style>
 """, unsafe_allow_html=True)
 
-# ================= BOUTON MODE EN FLOTTANT (DROITE) =================
-st.markdown('<div class="floating-mode">', unsafe_allow_html=True)
-label_mode = "☀️" if st.session_state.dark_mode else "🌙"
-if st.button(label_mode, key="mode_switch"):
-    st.session_state.dark_mode = not st.session_state.dark_mode
-    st.rerun()
-st.markdown('</div>', unsafe_allow_html=True)
+# ================= TOP BAR (Toggle à droite) =================
+col_left, col_mid, col_right = st.columns([0.7, 0.1, 0.2])
+with col_right:
+    label_mode = "☀️" if st.session_state.dark_mode else "🌙"
+    if st.button(label_mode, key="mode_toggle"):
+        st.session_state.dark_mode = not st.session_state.dark_mode
+        st.rerun()
 
 # ================= SUPABASE =================
 def get_supabase():
     return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
-
 supabase = get_supabase()
 
 # ================= SESSION =================
@@ -147,7 +146,7 @@ def format_price(val):
 
 # ================= LOGIN =================
 if "vendeur_phone" not in st.session_state:
-    st.markdown('<div style="text-align:center; padding-top:40px;">', unsafe_allow_html=True)
+    st.markdown('<div style="text-align:center; padding-top:20px;">', unsafe_allow_html=True)
     st.image("https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/main/mon%20logo%20mava.png", width=140)
     st.markdown(f"<h2 class='login-text'>Bienvenue</h2>", unsafe_allow_html=True)
     st.markdown(f"<p class='login-text'>Entrez votre numéro pour suivre vos commandes</p>", unsafe_allow_html=True)
@@ -165,14 +164,14 @@ else:
     # ================= DASHBOARD =================
     vendeur_phone = st.session_state.vendeur_phone
 
-    # Titre aligné à gauche
-    st.markdown(f"<span class='main-title'>Mes Commandes</span>", unsafe_allow_html=True)
-    
-    # Bouton Lien Dashboard
-    dash_url = f"https://mava.streamlit.app/?v={vendeur_phone}"
-    if st.button("🔗", key="copy_btn", help="Copier le lien"):
-        st.toast("Lien copié !")
-        st.markdown(f"""<script>navigator.clipboard.writeText("{dash_url}");</script>""", unsafe_allow_html=True)
+    col_h1, col_h2 = st.columns([0.8, 0.2])
+    with col_h1:
+        st.markdown(f"<span class='main-title'>Mes Commandes</span>", unsafe_allow_html=True)
+    with col_h2:
+        dash_url = f"https://mava.streamlit.app/?v={vendeur_phone}"
+        if st.button("🔗", key="copy_link"):
+            st.toast("Lien copié !")
+            st.markdown(f"""<script>navigator.clipboard.writeText("{dash_url}");</script>""", unsafe_allow_html=True)
 
     try:
         res = supabase.table("orders").select("*").eq("phone_vendeur", vendeur_phone).order("created_at", desc=True).execute()
@@ -187,7 +186,7 @@ else:
 
     with tab1:
         if not pending:
-            st.markdown(f"<p style='text-align:center; margin-top:20px;'>Aucune commande en attente.</p>", unsafe_allow_html=True)
+            st.markdown(f"<p style='text-align:center; color:{sub_text};'>Aucune commande en attente.</p>", unsafe_allow_html=True)
         for order in pending:
             st.markdown(f"""
             <div class="card pending">
@@ -201,7 +200,7 @@ else:
             
             p_c = normalize_phone(order.get("telephone",""))
             msg = urllib.parse.quote("Bonjour, je vous contacte pour votre livraison MAVA.")
-            st.markdown(f'<a class="btn-whatsapp" href="https://wa.me/{p_c}?text={msg}" target="_blank">CONTACTER LE CLIENT</a>', unsafe_allow_html=True)
+            st.markdown(f'<a style="background-color:#25D366; color:#000; border-radius:10px; text-align:center; padding:12px; display:block; text-decoration:none; font-weight:700; margin-bottom:8px;" href="https://wa.me/{p_c}?text={msg}" target="_blank">CONTACTER LE CLIENT</a>', unsafe_allow_html=True)
             
             if st.button("MARQUER COMME LIVRÉ", key=f"p_{order['id']}"):
                 supabase.table("orders").update({"statut": "Livré"}).eq("id", order['id']).execute()
@@ -209,7 +208,7 @@ else:
 
     with tab2:
         if not done:
-            st.markdown(f"<p style='text-align:center; margin-top:20px;'>Aucune commande livrée.</p>", unsafe_allow_html=True)
+            st.markdown(f"<p style='text-align:center; color:{sub_text};'>Aucune commande livrée.</p>", unsafe_allow_html=True)
         for order in done:
             st.markdown(f"""
             <div class="card done">
@@ -227,7 +226,8 @@ else:
 st.markdown(f"""
     <div class="footer">
         MAVA © 2025 • Tous droits réservés<br>
-        Plateforme de suivi logistique sécurisée
+        Plateforme de suivi logistique sécurisée<br>
+        <span style="opacity:0.5;">v2.1.0 • Stable Release</span>
     </div>
 """, unsafe_allow_html=True)
 
@@ -235,7 +235,5 @@ st.markdown(f"""
 if "last_refresh" not in st.session_state:
     st.session_state.last_refresh = time.time()
 if time.time() - st.session_state.last_refresh > 30:
-    st.session_state.last_refresh = time.time()
-    st.rerun()
     st.session_state.last_refresh = time.time()
     st.rerun()
