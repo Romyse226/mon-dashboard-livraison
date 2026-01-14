@@ -37,35 +37,10 @@ if vendeur_phone:
     
     # Récupération des commandes liées à ce numéro
     try:
-        response = supabase.table("orders").select("*").eq("phone_vendeur", vendeur_phone).order('created_at', descending=True).execute()
-        orders = response.data
-
-        if not orders:
-            st.info("Aucune commande en cours pour ce numéro.")
-        else:
-            for order in orders:
-                with st.container():
-                    col1, col2 = st.columns([3, 1])
-                    with col1:
-                        st.markdown(f"""
-                        <div class="order-card">
-                            <h3 style='margin:0;'>👤 {order['nom_client']}</h3>
-                            <p style='font-size:1.1em;'>📍 <b>Quartier :</b> {order['quartier']}<br>
-                            🛍️ <b>Articles :</b> {order['articles']}<br>
-                            💰 <b>Prix :</b> {order['prix']} FCFA</p>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    
-                    with col2:
-                        if order['statut'] == 'À livrer':
-                            if st.button(f"Livré ✅", key=f"btn_{order['id']}"):
-                                supabase.table("orders").update({"statut": "Livré"}).eq("id", order['id']).execute()
-                                st.success("Mis à jour !")
-                                st.rerun()
-                        else:
-                            st.markdown("<h3 style='color:#4CAF50;'>✅ Livré</h3>", unsafe_allow_html=True)
+        query = supabase.table("orders").select("*").eq("phone_vendeur", vendeur_phone).execute()
+        st.write("Données reçues :", query.data) # Pour voir si les données arrivent
     except Exception as e:
-        st.error("Erreur de connexion à la base de données.")
+        st.error(f"Détail de l'erreur : {e}") # Ceci nous dira ENFIN le vrai problème
 else:
     st.markdown("""
     ## 👋 Bienvenue sur votre espace de livraison
