@@ -20,7 +20,7 @@ card_bg = "#121212" if st.session_state.dark_mode else "#FFFFFF"
 text_color = "#FFFFFF" if st.session_state.dark_mode else "#000000"
 sub_text = "#BBBBBB" if st.session_state.dark_mode else "#666666"
 border_color = "#333333" if st.session_state.dark_mode else "#EEEEEE"
-price_color = "#FF0000" if st.session_state.dark_mode else "#700D02" # Rouge Vif en mode sombre
+price_color = "#FF0000" if st.session_state.dark_mode else "#700D02"
 
 # ================= CSS DYNAMIQUE =================
 st.markdown(f"""
@@ -28,13 +28,13 @@ st.markdown(f"""
     .stApp {{ background-color: {bg_color} !important; }}
     #MainMenu, footer, header {{visibility: hidden;}}
 
-    /* POSITIONNEMENT DU BOUTON TOGGLE EN HAUT A DROITE SUR MOBILE */
+    /* Alignement bouton Toggle */
     .stButton {{
         display: flex;
         justify-content: flex-end;
     }}
     
-    /* Titre Mes Commandes - AGRANDI */
+    /* Titre Mes Commandes */
     .main-title {{ 
         font-size: 2.2rem !important; 
         font-weight: 800 !important; 
@@ -43,7 +43,7 @@ st.markdown(f"""
         margin-top: 10px;
     }}
 
-    /* Cartes */
+    /* Cartes & Badges */
     .card {{
         position: relative;
         border-radius: 12px;
@@ -52,10 +52,9 @@ st.markdown(f"""
         background: {card_bg};
         border: 1px solid {border_color};
     }}
-    .card.pending {{ border-left: 8px solid #FF0000; }} /* Trait Rouge Vif */
+    .card.pending {{ border-left: 8px solid #FF0000; }}
     .card.done {{ border-left: 8px solid #1FA24A; }}
 
-    /* Badges */
     .badge {{
         position: absolute;
         top: 15px;
@@ -85,12 +84,17 @@ st.markdown(f"""
     }}
     div.stButton > button div p {{ color: white !important; }}
 
-    /* Bouton spécifique pour le changement de mode (Toggle) */
-    div[data-testid="column"]:nth-child(3) button, 
-    .st-emotion-cache-18ni7ve {{ 
-        width: 50px !important; 
-        background-color: transparent !important; 
-        border: 1px solid {border_color} !important;
+    /* LOGIN TEXT ALIGNEMENT GAUCHE */
+    .login-text {{ 
+        color: {text_color} !important; 
+        font-weight: 600; 
+        text-align: left !important; 
+        width: 100%;
+    }}
+
+    /* Centrage spécifique du bouton de login sur mobile */
+    div.login-btn-container div.stButton {{
+        justify-content: center !important;
     }}
 
     /* Footer */
@@ -113,12 +117,10 @@ st.markdown(f"""
         padding: 10px 15px !important;
     }}
     .stTabs [aria-selected="true"] {{ background-color: #700D02 !important; color: white !important; }}
-    
-    .login-text {{ color: {text_color} !important; font-weight: 600; text-align: center; }}
 </style>
 """, unsafe_allow_html=True)
 
-# ================= TOP BAR (Toggle à droite) =================
+# ================= TOP BAR (Toggle) =================
 col_left, col_mid, col_right = st.columns([0.7, 0.1, 0.2])
 with col_right:
     label_mode = "☀️" if st.session_state.dark_mode else "🌙"
@@ -148,25 +150,25 @@ def format_price(val):
 
 # ================= LOGIN =================
 if "vendeur_phone" not in st.session_state:
-    st.markdown('<div style="text-align:center; padding-top:20px;">', unsafe_allow_html=True)
+    st.markdown('<div style="text-align:left; padding-top:20px;">', unsafe_allow_html=True)
     st.image("https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/main/mon%20logo%20mava.png", width=140)
     st.markdown(f"<h2 class='login-text'>Bienvenue</h2>", unsafe_allow_html=True)
-    st.markdown(f"<p class='login-text'>Entrez votre numéro pour suivre vos commandes</p>", unsafe_allow_html=True)
+    st.markdown(f"<p class='login-text' style='font-weight:400;'>Entre ton numéro pour suivre tes commandes</p>", unsafe_allow_html=True)
     
     phone_input = st.text_input("Numéro", placeholder="07XXXXXXXX", label_visibility="collapsed")
     
+    st.markdown('<div class="login-btn-container">', unsafe_allow_html=True)
     if st.button("Suivre mes commandes"):
         if phone_input.strip():
             num = normalize_phone(phone_input.strip())
             st.session_state.vendeur_phone = num
             st.query_params["v"] = num
             st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('</div></div>', unsafe_allow_html=True)
 else:
     # ================= DASHBOARD =================
     vendeur_phone = st.session_state.vendeur_phone
 
-    # Les deux boutons au-dessus
     col_empty, col_btn_link = st.columns([0.8, 0.2])
     with col_btn_link:
         dash_url = f"https://mava.streamlit.app/?v={vendeur_phone}"
@@ -174,7 +176,6 @@ else:
             st.toast("Lien copié !")
             st.markdown(f"""<script>navigator.clipboard.writeText("{dash_url}");</script>""", unsafe_allow_html=True)
 
-    # Titre "Mes Commandes" en dessous des boutons
     st.markdown(f"<span class='main-title'>Mes Commandes</span>", unsafe_allow_html=True)
 
     try:
