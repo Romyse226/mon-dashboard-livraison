@@ -108,8 +108,8 @@ time.sleep(0.01)
 if "vendeur_phone" not in st.session_state:
 
     st.markdown("<div class='login-box'>", unsafe_allow_html=True)
-    # Remplacez la ligne 111 par celle-ci :
-st.image("https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/main/mon%20logo%20mava.png", width=120)
+    # Correction de la ligne de l'image avec le bon lien et alignement
+    st.image("https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/main/mon%20logo%20mava.png", width=120)
     st.markdown("### Se connecter")
 
     phone_input = st.text_input(
