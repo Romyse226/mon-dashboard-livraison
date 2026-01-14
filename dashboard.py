@@ -44,7 +44,7 @@ if vendeur_phone:
     
     try:
         # Récupération des données sans le debug st.write
-        response = supabase.table("orders").select("*").eq("phone_vendeur", vendeur_phone).order('created_at', descending=True).execute()
+       response = supabase.table("orders").select("*").eq("phone_vendeur", vendeur_phone).order('created_at', desc=True).execute()
         orders = response.data
 
         if not orders:
