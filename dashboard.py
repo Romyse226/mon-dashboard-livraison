@@ -10,70 +10,93 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# ================= CSS =================
-st.markdown("""
+# ================= CSS (VISUEL PRO & MOBILE FIRST) =================
+st.markdown(f"""
 <style>
-.stApp {
-    background-color: #F7F7F7;
-    color: #111;
-}
+    /* Global */
+    .stApp {{
+        background-color: #FFFFFF;
+        color: #111;
+    }}
+    
+    /* Login Box */
+    .login-box {{
+        max-width: 400px;
+        margin: auto;
+        padding: 40px 20px;
+        background: white;
+        border-radius: 24px;
+        box-shadow: 0 15px 35px rgba(112, 13, 2, 0.1);
+        text-align: center;
+    }}
 
-.card {
-    border-radius: 18px;
-    padding: 18px;
-    margin-bottom: 20px;
-    background: white;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
-}
+    /* Cartes Commandes */
+    .card {{
+        border-radius: 20px;
+        padding: 20px;
+        margin-bottom: 15px;
+        background: #fdfdfd;
+        border: 1px solid #eee;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }}
+    .card.pending {{ border-left: 8px solid #700D02; }}
+    .card.done {{ border-left: 8px solid #1FA24A; opacity: 0.8; }}
 
-.card.pending {
-    border-left: 6px solid #700D02;
-}
+    .badge-new {{
+        background-color: #700D02;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: bold;
+        display: inline-block;
+        margin-bottom: 10px;
+    }}
 
-.card.done {
-    border-left: 6px solid #1FA24A;
-    opacity: 0.9;
-}
+    .price {{
+        color: #700D02;
+        font-size: 1.4rem;
+        font-weight: 800;
+        margin-top: 10px;
+    }}
 
-.badge {
-    font-weight: 700;
-    margin-bottom: 10px;
-    font-size: 0.9rem;
-}
+    /* Boutons */
+    div.stButton > button {{
+        width: 100%;
+        border-radius: 12px !important;
+        font-weight: 600 !important;
+        transition: 0.3s;
+    }}
+    
+    /* Bouton Primaire (Couleur MAVA) */
+    div.stButton > button[kind="primary"] {{
+        background-color: #700D02 !important;
+        color: white !important;
+        border: none !important;
+        height: 3em;
+    }}
 
-.price {
-    font-size: 1.3rem;
-    font-weight: 800;
-    margin-top: 8px;
-}
+    /* Bouton WhatsApp (Noir sur Vert) */
+    .btn-whatsapp {{
+        background-color: #25D366 !important;
+        color: #000000 !important;
+        border-radius: 12px !important;
+        text-align: center;
+        padding: 10px;
+        display: block;
+        font-weight: 700;
+        text-decoration: none;
+        margin-bottom: 10px;
+        border: 1px solid #128C7E;
+    }}
 
-.btn-primary {
-    background-color: #700D02 !important;
-    color: white !important;
-    border-radius: 10px !important;
-    border: none !important;
-}
-
-.btn-whatsapp {
-    background-color: #25D366 !important;
-    color: white !important;
-    border-radius: 10px !important;
-    text-align: center;
-    padding: 8px;
-    display: block;
-    font-weight: 600;
-}
-
-.login-box {
-    max-width: 420px;
-    margin: auto;
-    margin-top: 80px;
-    padding: 30px;
-    background: white;
-    border-radius: 20px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
-    text-align: center;
-}
+    /* Header */
+    .header-container {{
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+    }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -89,101 +112,116 @@ supabase = supabase_client()
 
 # ================= UTILS =================
 def normalize_phone(phone: str):
-    phone = phone.replace(" ", "")
-    if phone.startswith("0"):
+    phone = "".join(filter(str.isdigit, phone))
+    if len(phone) == 10 and phone.startswith("0"):
         return "225" + phone
     return phone
 
 def format_price(val):
     try:
-        return f"{int(val):,}".replace(",", ".") + " FCFA"
+        return f"{int(val):,}".replace(",", " ") + " FCFA"
     except:
         return "—"
 
-# ================= AUTO REFRESH =================
-st.experimental_set_query_params(t=int(time.time()))
-time.sleep(0.01)
+# ================= AUTO REFRESH (30s) =================
+if "last_refresh" not in st.session_state:
+    st.session_state.last_refresh = time.time()
+
+# Script d'auto-refresh toutes les 30 secondes
+st.empty()
+if time.time() - st.session_state.last_refresh > 30:
+    st.session_state.last_refresh = time.time()
+    st.rerun()
 
 # ================= LOGIN =================
 if "vendeur_phone" not in st.session_state:
-
     st.markdown("<div class='login-box'>", unsafe_allow_html=True)
-    # Correction de la ligne de l'image avec le bon lien et alignement
-    st.image("https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/main/mon%20logo%20mava.png", width=120)
-    st.markdown("### Se connecter")
+    st.image("https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/main/mon%20logo%20mava.png", width=140)
+    st.markdown("<h2 style='color:#700D02;'>Espace Vendeur</h2>", unsafe_allow_html=True)
 
     phone_input = st.text_input(
-        "Numéro WhatsApp",
-        placeholder="07XXXXXXXX"
+        "Entrez votre numéro WhatsApp",
+        placeholder="Ex: 0707070707"
     )
 
-    if st.button("Accéder au dashboard", type="primary"):
+    if st.button("Se connecter", type="primary"):
         if phone_input.strip():
+            # On normalise pour le stockage mais l'utilisateur tape juste son numéro
             st.session_state.vendeur_phone = normalize_phone(phone_input.strip())
             st.rerun()
-
+    
     st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
-# ================= DASHBOARD =================
+# ================= DASHBOARD (CONNECTÉ) =================
 vendeur_phone = st.session_state.vendeur_phone
-dashboard_link = f"https://mava.streamlit.app/?vendeur={vendeur_phone}"
+logo_url = "https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/main/mon%20logo%20mava.png"
 
-st.markdown("## Mes Commandes")
+# Header avec Logo à droite
+col_t1, col_t2 = st.columns([3, 1])
+with col_t1:
+    st.markdown(f"<h2 style='margin:0;'>Mes Commandes</h2>", unsafe_allow_html=True)
+with col_t2:
+    st.image(logo_url, width=60)
 
-st.code(dashboard_link, language="text")
+# Lien Dashboard unique (Copiable proprement)
+dashboard_url = f"https://mava.streamlit.app/?vendeur={vendeur_phone}"
+st.info(f"🔗 **Lien unique :** {dashboard_url}")
+st.caption("Maintenez le lien appuyé pour le copier sur mobile.")
 
-# ================= FETCH =================
-res = supabase.table("orders") \
-    .select("*") \
-    .eq("phone_vendeur", vendeur_phone) \
-    .order("created_at", desc=True) \
-    .execute()
+# ================= FETCH DATA =================
+try:
+    res = supabase.table("orders") \
+        .select("*") \
+        .eq("phone_vendeur", vendeur_phone) \
+        .order("created_at", desc=True) \
+        .execute()
+    orders = res.data or []
+except:
+    orders = []
 
-orders = res.data or []
+pending = [o for o in orders if o.get("statut") != "Livré"]
+done = [o for o in orders if o.get("statut") == "Livré"]
 
-pending = [o for o in orders if o["statut"] != "Livré"]
-done = [o for o in orders if o["statut"] == "Livré"]
-
+# Affichage des sections
 if pending:
-    st.markdown("### 🔔 Nouvelles commandes")
-
-for order in pending + done:
-
-    is_done = order["statut"] == "Livré"
-    card_class = "done" if is_done else "pending"
-    badge = "LIVRÉ" if is_done else "À LIVRER"
-
-    st.markdown(f"""
-    <div class="card {card_class}">
-        <div class="badge">{badge}</div>
-        <b>Client :</b> {order.get('nom_client','—')}<br>
-        <b>Lieu :</b> {order.get('quartier','—')}<br>
-        <b>Article :</b> {order.get('articles','—')}
-        <div class="price">{format_price(order.get('prix'))}</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        phone_client = normalize_phone(order.get("telephone",""))
-        msg = urllib.parse.quote("Bonjour, je vous contacte pour votre livraison.")
-        st.markdown(
-            f'<a class="btn-whatsapp" href="https://wa.me/{phone_client}?text={msg}" target="_blank">WhatsApp Client</a>',
-            unsafe_allow_html=True
-        )
-
-    with col2:
-        if not is_done:
-            if st.button("Livraison effectuée", key=f"done_{order['id']}"):
-                supabase.table("orders").update(
-                    {"statut": "Livré"}
-                ).eq("id", order["id"]).execute()
+    st.markdown("### 🔔 NOUVELLES COMMANDES")
+    for order in pending:
+        with st.container():
+            st.markdown(f"""
+            <div class="card pending">
+                <div class="badge-new">À LIVRER</div><br>
+                👤 <b>Client :</b> {order.get('nom_client','—')}<br>
+                📍 <b>Lieu :</b> {order.get('quartier','—')}<br>
+                🛍️ <b>Article :</b> {order.get('articles','—')}
+                <div class="price">{format_price(order.get('prix'))}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Boutons Mobile-First (WhatsApp au centre, Action à droite)
+            phone_client = normalize_phone(order.get("telephone",""))
+            msg = urllib.parse.quote("Bonjour, je vous contacte pour votre livraison MAVA.")
+            
+            st.markdown(f'<a class="btn-whatsapp" href="https://wa.me/{phone_client}?text={msg}" target="_blank">💬 WhatsApp Client</a>', unsafe_allow_html=True)
+            
+            if st.button("✅ Livraison effectuée", key=f"btn_{order['id']}", type="primary"):
+                supabase.table("orders").update({"statut": "Livré"}).eq("id", order["id"]).execute()
                 st.rerun()
-        else:
-            if st.button("Annuler livraison", key=f"undo_{order['id']}"):
-                supabase.table("orders").update(
-                    {"statut": "À livrer"}
-                ).eq("id", order["id"]).execute()
+            st.markdown("---")
+
+if done:
+    with st.expander("📊 Historique des livraisons", expanded=False):
+        for order in done:
+            st.markdown(f"""
+            <div class="card done">
+                👤 <b>Client :</b> {order.get('nom_client','—')}<br>
+                🛍️ <b>Article :</b> {order.get('articles','—')}
+                <div class="price" style="font-size:1rem;">{format_price(order.get('prix'))}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            if st.button("🔄 Annuler le statut Livré", key=f"undo_{order['id']}"):
+                supabase.table("orders").update({"statut": "À livrer"}).eq("id", order["id"]).execute()
                 st.rerun()
+
+# Footer auto-refresh
+st.caption(f"Dernière mise à jour : {time.strftime('%H:%M:%S')} (Refresh auto 30s)")
