@@ -1,84 +1,146 @@
 import streamlit as st
-from supabase import create_client, Client
+from supabase import create_client
 import urllib.parse
 
-# 1. Configuration de la page
-st.set_page_config(page_title="Livreur Pro Elite", layout="wide")
+# ---------------- CONFIG PAGE ----------------
+st.set_page_config(
+    page_title="MAVA • Mes Commandes",
+    layout="centered",
+    initial_sidebar_state="collapsed"
+)
 
-# 2. Design CSS
+# ---------------- CSS GLOBAL ----------------
 st.markdown("""
-    <style>
-    .stApp { background-color: #050505; color: #FFFFFF; }
-    [data-testid="stSidebar"] { background-color: #1a0301; border-right: 1px solid #700D02; }
-    .order-card {
-        background: linear-gradient(145deg, #1c1c1c, #0d0d0d);
-        padding: 20px;
-        border-radius: 15px;
-        border-left: 8px solid #700D02;
-        margin-bottom: 15px;
-    }
-    .card-title { color: #FFFFFF; font-size: 1.2rem; font-weight: 700; }
-    .stButton>button {
-        background: linear-gradient(90deg, #700D02, #a31403);
-        color: white; border-radius: 10px; border: none; width: 100%;
-    }
-    .wa-button {
-        background: linear-gradient(90deg, #128C7E, #25D366);
-        color: white; padding: 10px; border-radius: 10px;
-        text-decoration: none; display: block; text-align: center;
-        font-weight: 700; margin-bottom: 10px; font-size: 0.8rem;
-    }
-    </style>
+<style>
+.stApp {
+    background-color: #050505;
+    color: #FFFFFF;
+}
+
+.card {
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 18px;
+}
+
+.card.pending {
+    border-left: 6px solid #B11205;
+    background: #120202;
+}
+
+.card.done {
+    border-left: 6px solid #1FA24A;
+    background: #03140A;
+}
+
+.badge {
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.price {
+    font-size: 1.2rem;
+    font-weight: 800;
+}
+
+button {
+    width: 100%;
+    border-radius: 10px !important;
+}
+
+input {
+    text-align: center;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ---------------- SUPABASE ----------------
+@st.cache_resource
+def supabase_client():
+    return create_client(
+        st.secrets["SUPABASE_URL"],
+        st.secrets["SUPABASE_KEY"]
+    )
+
+supabase = supabase_client()
+
+# ---------------- UTILS ----------------
+def format_price(val):
+    try:
+        return f"{int(val):,}".replace(",", ".") + " FCFA"
+    except:
+        return "—"
+
+# ---------------- LOGIN ----------------
+if "vendeur_phone" not in st.session_state:
+
+    st.markdown("<h2 style='text-align:center;'>Connexion Livreur</h2>", unsafe_allow_html=True)
+    phone = st.text_input("Numéro WhatsApp", placeholder="07XXXXXXXX")
+
+    if st.button("Accéder à mes commandes"):
+        if phone.strip():
+            st.session_state.vendeur_phone = phone.strip()
+            st.rerun()
+
+    st.stop()
+
+# ---------------- DASHBOARD ----------------
+vendeur_phone = st.session_state.vendeur_phone
+
+st.markdown("## 🔗 MES COMMANDES")
+
+# Fetch commandes
+res = supabase.table("orders") \
+    .select("*") \
+    .eq("phone_vendeur", vendeur_phone) \
+    .order("created_at", desc=True) \
+    .execute()
+
+orders = res.data or []
+
+if not orders:
+    st.info("Aucune commande pour le moment.")
+    st.stop()
+
+# ---------------- DISPLAY COMMANDES ----------------
+for order in orders:
+    is_done = order["statut"] == "Livré"
+    card_class = "done" if is_done else "pending"
+    badge = "✅ LIVRÉ" if is_done else "⏳ À LIVRER"
+
+    st.markdown(f"""
+    <div class="card {card_class}">
+        <div class="badge">{badge}</div>
+        <b>👤 {order.get('nom_client','Client')}</b><br>
+        📍 {order.get('quartier','—')}<br>
+        🛍️ {order.get('articles','—')}<br><br>
+        <div class="price">💰 {format_price(order.get('prix'))}</div>
+    </div>
     """, unsafe_allow_html=True)
 
-# 3. Connexion Supabase
-@st.cache_resource
-def init_connection():
-    return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
+    # Boutons
+    col1, col2 = st.columns(2)
 
-supabase = init_connection()
+    with col1:
+        phone_client = str(order.get("telephone","")).replace(" ", "")
+        msg = urllib.parse.quote("Bonjour, je vous contacte pour votre livraison.")
+        st.markdown(
+            f'<a href="https://wa.me/{phone_client}?text={msg}" target="_blank">💬 WhatsApp Client</a>',
+            unsafe_allow_html=True
+        )
 
-# 4. Sidebar
-st.sidebar.title("🔑 Connexion")
-vendeur_phone = st.sidebar.text_input("Numéro WhatsApp")
-
-# 5. Logique Principale
-if vendeur_phone:
-    st.title("📦 Vos Commandes")
-    try:
-        # Requête
-        res = supabase.table("orders").select("*").eq("phone_vendeur", vendeur_phone).order('created_at', desc=True).execute()
-        orders = res.data
-
-        if not orders:
-            st.info("Aucune commande pour ce numéro.")
+    with col2:
+        if not is_done:
+            if st.button("Livraison effectuée ✅", key=f"done_{order['id']}"):
+                supabase.table("orders") \
+                    .update({"statut": "Livré"}) \
+                    .eq("id", order["id"]) \
+                    .execute()
+                st.rerun()
         else:
-            for order in orders:
-                col_info, col_btn = st.columns([3, 1])
-                
-                with col_info:
-                    st.markdown(f"""
-                    <div class="order-card">
-                        <div class="card-title">👤 {order.get('nom_client', 'Client')}</div>
-                        <p>📍 {order.get('quartier', 'Abidjan')} | 🛍️ {order.get('articles', 'Produit')}</p>
-                        <p style='font-size:1.1rem;'>💰 <b>{order.get('prix', 0)} FCFA</b></p>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                with col_btn:
-                    # Bouton WhatsApp
-                    c_phone = str(order.get('telephone', '')).replace(" ", "")
-                    msg = urllib.parse.quote("Bonjour, je vous contacte pour votre livraison.")
-                    st.markdown(f'<a href="https://wa.me/{c_phone}?text={msg}" target="_blank" class="wa-button">💬 WHATSAPP</a>', unsafe_allow_html=True)
-                    
-                    # Bouton Statut
-                    if order.get('statut') == 'À livrer':
-                        if st.button("LIVRÉ ✅", key=f"btn_{order['id']}"):
-                            supabase.table("orders").update({"statut": "Livré"}).eq("id", order['id']).execute()
-                            st.rerun()
-                    else:
-                        st.success("Livré")
-    except Exception as e:
-        st.error(f"Erreur technique : {e}")
-else:
-    st.write("Veuillez entrer votre numéro dans la barre latérale.")
+            if st.button("Annuler 🔄", key=f"undo_{order['id']}"):
+                supabase.table("orders") \
+                    .update({"statut": "À livrer"}) \
+                    .eq("id", order["id"]) \
+                    .execute()
+                st.rerun()
