@@ -26,7 +26,7 @@ st.markdown("""
     }
     
     .login-text {
-        color: #000000 !important;
+        color: #FFFFFF !important;
         font-weight: 600;
         margin-bottom: 5px;
     }
@@ -35,7 +35,7 @@ st.markdown("""
     .main-title {
         font-size: 1.8rem !important;
         font-weight: 800 !important;
-        color: #000000 !important;
+        color: #FFFFFF !important;
     }
 
     /* Onglets style Boutons */
