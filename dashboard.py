@@ -13,7 +13,7 @@ st.set_page_config(
 # ================= CSS : DESIGN MOBILE FINAL =================
 st.markdown("""
 <style>
-    .stApp { background-color: #FFFFFF !important; }
+    .stApp { background-color: #000000 !important; }
     #MainMenu, footer, header {visibility: hidden;}
 
     /* Centrage Page Connexion */
