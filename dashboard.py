@@ -10,77 +10,73 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# ================= CSS DYNAMIQUE & INTERACTIF =================
+# ================= CSS : VISIBILITÉ TOTALE & MOBILE =================
 st.markdown("""
 <style>
-    .stApp { background-color: #FFFFFF; }
-    #MainMenu, footer, header {visibility: hidden;}
+    /* Fond blanc pur pour un contraste maximum */
+    .stApp { 
+        background-color: #FFFFFF !important; 
+    }
     
-    /* Titre et Icône de copie */
-    .header-container {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 20px;
+    #MainMenu, footer, header {visibility: hidden;}
+
+    /* Textes en noir profond */
+    h1, h2, h3, h4, p, span, div {
+        color: #111111 !important;
     }
 
-    /* Style des Cartes */
+    /* Card Design avec bordures visibles */
     .card {
-        border-radius: 20px;
-        padding: 20px;
+        border-radius: 15px;
+        padding: 18px;
         margin-bottom: 15px;
-        background: white;
-        box-shadow: 0 10px 20px rgba(0,0,0,0.05);
-        border: 1px solid #f0f0f0;
+        background: #FFFFFF;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        border: 2px solid #EEEEEE; /* Bordure grise claire pour détacher du fond */
     }
     .card.pending { border-left: 10px solid #700D02; }
-    
-    .info-line { margin-bottom: 8px; font-size: 1.05rem; }
-    .price { font-size: 1.5rem; font-weight: 900; color: #700D02; }
 
-    /* Boutons Ultra-Réactifs */
-    div.stButton > button {
-        width: 100%;
-        border-radius: 15px !important;
-        height: 55px;
-        font-weight: 700 !important;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        transition: transform 0.1s active;
+    /* Infos de la commande */
+    .info-line { 
+        margin-bottom: 6px; 
+        font-size: 1.1rem; 
+        color: #111111 !important;
     }
-    
-    /* Effet clic sur mobile */
-    div.stButton > button:active {
-        transform: scale(0.96);
+    .price { 
+        font-size: 1.6rem; 
+        font-weight: 900; 
+        color: #700D02 !important; 
+        margin-top: 10px;
     }
 
-    /* Bouton WhatsApp noir sur vert */
+    /* Bouton WhatsApp : Texte NOIR sur Fond VERT */
     .btn-whatsapp {
         background-color: #25D366 !important;
         color: #000000 !important;
-        border-radius: 15px;
+        border-radius: 12px;
         text-align: center;
         padding: 15px;
         display: block;
         text-decoration: none;
         font-weight: 800;
-        margin-bottom: 12px;
-        box-shadow: 0 4px 12px rgba(37, 211, 102, 0.2);
+        margin-bottom: 10px;
+        border: 1px solid #1DA851;
     }
 
-    /* Login Page */
-    .login-box { text-align: center; padding-top: 50px; }
-</style>
+    /* Bouton Streamlit : Texte BLANC sur Fond ROUGE MAVA */
+    div.stButton > button {
+        width: 100%;
+        border-radius: 12px !important;
+        height: 55px;
+        font-weight: 700 !important;
+        background-color: #700D02 !important;
+        color: #FFFFFF !important;
+        border: none !important;
+    }
 
-<script>
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(function() {
-        alert("Lien copié !");
-    }, function(err) {
-        console.error('Erreur lors de la copie', err);
-    });
-}
-</script>
+    /* Page de connexion */
+    .login-box { text-align: center; padding-top: 40px; }
+</style>
 """, unsafe_allow_html=True)
 
 # ================= SUPABASE =================
@@ -89,6 +85,12 @@ def supabase_client():
     return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
 supabase = supabase_client()
+
+# ================= PERSISTANCE SESSION (URL) =================
+# On récupère le numéro depuis l'URL si il existe
+query_params = st.query_params
+if "v" in query_params and "vendeur_phone" not in st.session_state:
+    st.session_state.vendeur_phone = query_params["v"]
 
 # ================= UTILS =================
 def normalize_phone(phone: str):
@@ -101,61 +103,63 @@ def format_price(val):
     try: return f"{int(val):,}".replace(",", ".") + " FCFA"
     except: return "—"
 
-# ================= LOGIN =================
+# ================= LOGIN PAGE =================
 if "vendeur_phone" not in st.session_state:
     st.markdown("<div class='login-box'>", unsafe_allow_html=True)
-    st.image("https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/main/mon%20logo%20mava.png", width=150)
+    st.image("https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/main/mon%20logo%20mava.png", width=140)
     st.markdown("## Bienvenue")
-    st.write("Entrez votre numéro pour suivre vos commandes")
+    st.markdown("<p style='color:#666 !important;'>Entrez votre numéro pour suivre vos commandes</p>", unsafe_allow_html=True)
     
     phone_input = st.text_input("Numéro WhatsApp", placeholder="Ex: 07XXXXXXXX", label_visibility="collapsed")
     
-    if st.button("ACCÉDER AU DASHBOARD", type="primary"):
+    if st.button("ACCÉDER AU DASHBOARD"):
         if phone_input.strip():
-            st.session_state.vendeur_phone = normalize_phone(phone_input.strip())
+            num = normalize_phone(phone_input.strip())
+            st.session_state.vendeur_phone = num
+            # On ajoute le numéro dans l'URL pour ne pas être déconnecté
+            st.query_params["v"] = num
             st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
-# ================= DASHBOARD CORE =================
+# ================= DASHBOARD =================
 vendeur_phone = st.session_state.vendeur_phone
-dashboard_link = f"https://mava.streamlit.app/?vendeur={vendeur_phone}"
 
-# Header avec bouton copie
-col_h1, col_h2 = st.columns([0.8, 0.2])
+# Header
+col_h1, col_h2 = st.columns([0.85, 0.15])
 with col_h1:
-    st.markdown(f"## Mes Commandes")
+    st.markdown("## Mes Commandes")
 with col_h2:
-    # Bouton de copie invisible mais avec icone
-    if st.button("🔗", help="Copier mon lien"):
-        st.write(f'<script>copyToClipboard("{dashboard_link}")</script>', unsafe_allow_html=True)
-        st.toast("Lien copié dans le presse-papier !")
+    # Bouton de copie
+    dash_url = f"https://mava.streamlit.app/?v={vendeur_phone}"
+    if st.button("🔗"):
+        st.toast("Lien copié !")
+        st.write(f'<script>navigator.clipboard.writeText("{dash_url}")</script>', unsafe_allow_html=True)
 
-# Logo à droite (optionnel selon le rendu souhaité)
-st.sidebar.image("https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/main/mon%20logo%20mava.png")
+# Logo discret
+st.image("https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/main/mon%20logo%20mava.png", width=60)
 
 # ================= AUTO REFRESH INVISIBLE (30s) =================
-if "refresh_timer" not in st.session_state:
-    st.session_state.refresh_timer = time.time()
+if "last_ts" not in st.session_state:
+    st.session_state.last_ts = time.time()
 
-if time.time() - st.session_state.refresh_timer > 30:
-    st.session_state.refresh_timer = time.time()
+if time.time() - st.session_state.last_ts > 30:
+    st.session_state.last_ts = time.time()
     st.rerun()
 
-# ================= FETCH DATA =================
+# ================= FETCH & DISPLAY =================
 res = supabase.table("orders").select("*").eq("phone_vendeur", vendeur_phone).order("created_at", desc=True).execute()
 orders = res.data or []
 
 pending = [o for o in orders if o["statut"] != "Livré"]
 done = [o for o in orders if o["statut"] == "Livré"]
 
-# ================= AFFICHAGE DES COMMANDES =================
+if not orders:
+    st.info("Aucune commande trouvée pour ce numéro.")
+
 if pending:
-    st.markdown("#### 🔔 NOUVELLES")
+    st.markdown("#### 🔔 EN COURS")
     for order in pending:
-        # On utilise une clé unique basée sur l'ID et le timestamp pour éviter les bugs de cache
-        order_id = order['id']
-        
         st.markdown(f"""
         <div class="card pending">
             <div class="info-line">👤 <b>Client :</b> {order.get('nom_client','—')}</div>
@@ -165,27 +169,21 @@ if pending:
         </div>
         """, unsafe_allow_html=True)
         
-        phone_c = normalize_phone(order.get("telephone",""))
-        msg = urllib.parse.quote("Bonjour, je suis en route pour votre livraison MAVA.")
+        # WhatsApp
+        p_c = normalize_phone(order.get("telephone",""))
+        msg = urllib.parse.quote("Bonjour, je vous contacte pour votre livraison MAVA.")
+        st.markdown(f'<a class="btn-whatsapp" href="https://wa.me/{p_c}?text={msg}" target="_blank">CONTACTER LE CLIENT</a>', unsafe_allow_html=True)
         
-        # WhatsApp Link
-        st.markdown(f'<a class="btn-whatsapp" href="https://wa.me/{phone_c}?text={msg}" target="_blank">CONTACTER LE CLIENT</a>', unsafe_allow_html=True)
-        
-        # Bouton Action Direct (C'est ici qu'on gère le "clic unique")
-        if st.button(f"MARQUER COMME LIVRÉ", key=f"ship_{order_id}", type="primary"):
-            supabase.table("orders").update({"statut": "Livré"}).eq("id", order_id).execute()
+        # Action (Une seule pression suffit)
+        if st.button("MARQUER COMME LIVRÉ", key=f"ok_{order['id']}"):
+            supabase.table("orders").update({"statut": "Livré"}).eq("id", order['id']).execute()
             st.rerun()
         st.markdown("<br>", unsafe_allow_html=True)
 
 if done:
-    with st.expander("✅ Historique (Livrés)"):
+    with st.expander("✅ Historique des livraisons"):
         for order in done:
-            st.markdown(f"""
-            <div style="padding:10px; border-bottom:1px solid #eee;">
-                <b>{order.get('nom_client')}</b> - {format_price(order.get('prix'))}<br>
-                <small>{order.get('articles')}</small>
-            </div>
-            """, unsafe_allow_html=True)
-            if st.button("Annuler", key=f"unship_{order['id']}"):
+            st.write(f"**{order.get('nom_client')}** - {format_price(order.get('prix'))}")
+            if st.button("Annuler", key=f"rev_{order['id']}"):
                 supabase.table("orders").update({"statut": "À livrer"}).eq("id", order['id']).execute()
                 st.rerun()
