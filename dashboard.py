@@ -10,13 +10,14 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# ================= CSS : DESIGN MOBILE FINAL =================
+# ================= CSS : MODE SOMBRE PREMIUM =================
 st.markdown("""
 <style>
+    /* Fond Noir Global */
     .stApp { background-color: #000000 !important; }
     #MainMenu, footer, header {visibility: hidden;}
 
-    /* Centrage Page Connexion */
+    /* Centrage Page Connexion & Textes Blancs */
     .login-container {
         display: flex;
         flex-direction: column;
@@ -26,7 +27,7 @@ st.markdown("""
     }
     
     .login-text {
-        color: #FFFFFF !important;
+        color: #FFFFFF !important; /* Texte Blanc sur Noir */
         font-weight: 600;
         margin-bottom: 5px;
     }
@@ -38,16 +39,17 @@ st.markdown("""
         color: #FFFFFF !important;
     }
 
-    /* Onglets style Boutons */
+    /* Onglets style Boutons Mode Sombre */
     .stTabs [data-baseweb="tab-list"] {
         gap: 10px;
         background-color: transparent;
     }
     .stTabs [data-baseweb="tab"] {
-        background-color: #f1f1f1 !important;
+        background-color: #1E1E1E !important;
+        color: #BBBBBB !important;
         border-radius: 10px !important;
         padding: 10px 20px !important;
-        border: 1px solid #ddd !important;
+        border: 1px solid #333333 !important;
         font-weight: bold !important;
     }
     .stTabs [aria-selected="true"] {
@@ -56,15 +58,14 @@ st.markdown("""
         border: none !important;
     }
 
-    /* Style des Cartes */
+    /* Style des Cartes (Gris Foncé) */
     .card {
         position: relative;
         border-radius: 12px;
         padding: 15px;
         margin-bottom: 10px;
-        background: #FFFFFF;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        border: 1px solid #EEEEEE;
+        background: #121212; /* Gris très foncé */
+        border: 1px solid #333333; /* Bordure grise visible */
     }
     .card.pending { border-left: 8px solid #700D02; }
     .card.done { border-left: 8px solid #1FA24A; }
@@ -83,9 +84,9 @@ st.markdown("""
     .badge-pending { background-color: #700D02; }
     .badge-done { background-color: #1FA24A; }
 
-    /* Textes */
-    .info-line { margin-bottom: 4px; font-size: 1rem; color: #111 !important; width: 70%; }
-    .price { font-size: 1.3rem; font-weight: 800; color: #700D02 !important; }
+    /* Textes intérieurs (Blancs) */
+    .info-line { margin-bottom: 4px; font-size: 1rem; color: #EEEEEE !important; width: 70%; }
+    .price { font-size: 1.3rem; font-weight: 800; color: #FF4D4D !important; } /* Rouge plus vif pour contraste */
 
     /* Boutons ROUGES MAVA */
     div.stButton > button {
@@ -111,6 +112,9 @@ st.markdown("""
         font-weight: 700;
         margin-bottom: 8px;
     }
+    
+    /* Textes d'infos (Aucune commande...) */
+    .stMarkdown p { color: #BBBBBB !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -180,7 +184,7 @@ tab1, tab2 = st.tabs([f"🔔 En cours ({len(pending)})", f"✅ Livrées ({len(do
 
 with tab1:
     if not pending:
-        st.markdown("<p style='color:black; text-align:center;'>Aucune commande en attente.</p>", unsafe_allow_html=True)
+        st.markdown("<p style='color:#BBBBBB; text-align:center;'>Aucune commande en attente.</p>", unsafe_allow_html=True)
     for order in pending:
         st.markdown(f"""
         <div class="card pending">
@@ -202,7 +206,7 @@ with tab1:
 
 with tab2:
     if not done:
-        st.markdown("<p style='color:black; text-align:center;'>Aucune commande livrée.</p>", unsafe_allow_html=True)
+        st.markdown("<p style='color:#BBBBBB; text-align:center;'>Aucune commande livrée.</p>", unsafe_allow_html=True)
     for order in done:
         st.markdown(f"""
         <div class="card done">
