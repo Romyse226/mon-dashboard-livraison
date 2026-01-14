@@ -34,11 +34,14 @@ st.markdown(f"""
         justify-content: flex-end;
     }}
     
-    /* Titre Mes Commandes */
+    /* Titre Mes Commandes - AGRANDI */
     .main-title {{ 
-        font-size: 1.8rem !important; 
+        font-size: 2.2rem !important; 
         font-weight: 800 !important; 
         color: {text_color} !important; 
+        display: block;
+        margin-top: 10px;
+        margin-bottom: 15px;
     }}
 
     /* Cartes */
@@ -164,14 +167,16 @@ else:
     # ================= DASHBOARD =================
     vendeur_phone = st.session_state.vendeur_phone
 
-    col_h1, col_h2 = st.columns([0.8, 0.2])
-    with col_h1:
-        st.markdown(f"<span class='main-title'>Mes Commandes</span>", unsafe_allow_html=True)
-    with col_h2:
+    # Zone des boutons en haut
+    col_empty, col_btn_copy = st.columns([0.8, 0.2])
+    with col_btn_copy:
         dash_url = f"https://mava.streamlit.app/?v={vendeur_phone}"
         if st.button("🔗", key="copy_link"):
             st.toast("Lien copié !")
             st.markdown(f"""<script>navigator.clipboard.writeText("{dash_url}");</script>""", unsafe_allow_html=True)
+
+    # Titre placé EN DESSOUS des boutons
+    st.markdown(f"<span class='main-title'>Mes Commandes</span>", unsafe_allow_html=True)
 
     try:
         res = supabase.table("orders").select("*").eq("phone_vendeur", vendeur_phone).order("created_at", desc=True).execute()
