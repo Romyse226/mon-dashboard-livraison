@@ -43,8 +43,8 @@ if vendeur_phone:
     st.title(f"📦 Vos Livraisons")
     
     try:
-        # Récupération des données sans le debug st.write
-       response = supabase.table("orders").select("*").eq("phone_vendeur", vendeur_phone).order('created_at', desc=True).execute()
+        # La requête doit être parfaitement alignée sous le try
+        response = supabase.table("orders").select("*").eq("phone_vendeur", vendeur_phone).order('created_at', desc=True).execute()
         orders = response.data
 
         if not orders:
@@ -57,23 +57,20 @@ if vendeur_phone:
                     with col1:
                         st.markdown(f"""
                         <div class="order-card">
-                            <h3 style='margin:0;'>👤 {order['nom_client'] or 'Client Inconnu'}</h3>
-                            <p style='font-size:1.1em;'>📍 <b>Quartier :</b> {order['quartier']}<br>
-                            🛍️ <b>Articles :</b> {order['articles']}<br>
-                            💰 <b>Prix :</b> {order['prix']} FCFA</p>
+                            <h3 style='margin:0;'>👤 {order.get('nom_client', 'Client Inconnu')}</h3>
+                            <p style='font-size:1.1em;'>📍 <b>Quartier :</b> {order.get('quartier', 'N/A')}<br>
+                            🛍️ <b>Articles :</b> {order.get('articles', 'N/A')}<br>
+                            💰 <b>Prix :</b> {order.get('prix', 0)} FCFA</p>
                         </div>
                         """, unsafe_allow_html=True)
                     
                     with col2:
-                        # --- BOUTON WHATSAPP CLIENT ---
-                        # On prépare le message automatique
-                        msg = urllib.parse.quote(f"Bonjour {order['nom_client']}, je vous contacte concernant votre commande de {order['articles']}.")
-                        wa_url = f"https://wa.me/{order['telephone']}?text={msg}"
-                        
-                        st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-button">💬 WhatsApp Client</a>', unsafe_allow_html=True)
+                        # Bouton WhatsApp avec numéro client
+                        msg = urllib.parse.quote(f"Bonjour {order.get('nom_client', '')}, je vous contacte pour votre commande.")
+                        wa_url = f"https://wa.me/{order.get('telephone', '')}?text={msg}"
+                        st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-button">💬 WhatsApp</a>', unsafe_allow_html=True)
 
-                        # --- BOUTON STATUT ---
-                        if order['statut'] == 'À livrer':
+                        if order.get('statut') == 'À livrer':
                             if st.button(f"Livré ✅", key=f"btn_{order['id']}"):
                                 supabase.table("orders").update({"statut": "Livré"}).eq("id", order['id']).execute()
                                 st.rerun()
@@ -81,6 +78,6 @@ if vendeur_phone:
                             st.success("Terminé")
 
     except Exception as e:
-        st.error(f"Erreur : {e}")
+        st.error(f"Détail technique : {e}")
 else:
     st.markdown("## 👋 Entrez votre numéro à gauche pour commencer.")
