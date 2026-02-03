@@ -97,44 +97,76 @@ def fetch_data():
 # ================= INTERFACE PRINCIPALE =================
 inject_notification_logic()
 
-# ================= SYSTÈME DE NOTIFICATIONS MUSCLÉ =================
+# ================= SYSTÈME DE NOTIFICATIONS RÉPARÉ =================
 if "vendeur_phone" in st.session_state:
-    # On utilise st.markdown pour injecter le JS directement dans le parent
-    st.markdown("""
-        <div id="notif-banner" style="background: #700D02; color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; text-align: center; border: 2px solid #FF0000; box-shadow: 0 4px 15px rgba(255,0,0,0.3);">
-            <div style="font-size: 1.2rem; margin-bottom: 10px;">📢 <b>Alerte Nouvelles Commandes</b></div>
-            <p style="font-size: 0.9rem; opacity: 0.9;">Activez les notifications pour recevoir les alertes en temps réel sur ce téléphone.</p>
-            <button onclick="askNotificationPermission()" style="background: white; color: #700D02; border: none; padding: 12px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; margin: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">AUTORISER</button>
-            <button onclick="document.getElementById('notif-banner').style.display='none'" style="background:transparent; color:white; border:1px solid white; padding: 10px 20px; border-radius: 8px; cursor: pointer; margin: 5px;">FERMER</button>
+    components.html(f"""
+        <div id="notif-banner" style="
+            background: #700D02; 
+            color: white; 
+            padding: 15px; 
+            border-radius: 12px; 
+            text-align: center; 
+            font-family: sans-serif;
+            border: 1px solid #FF0000;
+            display: block;">
+            
+            <div style="font-weight: bold; margin-bottom: 8px;">📢 Alertes Nouvelles Commandes</div>
+            <p style="font-size: 13px; margin-bottom: 12px; opacity: 0.9;">Cliquez sur Autoriser pour recevoir les alertes.</p>
+            
+            <button id="auth-btn" style="
+                background: white; 
+                color: #700D02; 
+                border: none; 
+                padding: 10px 20px; 
+                border-radius: 8px; 
+                font-weight: bold; 
+                cursor: pointer; 
+                margin-right: 5px;">AUTORISER</button>
+            
+            <button id="close-btn" style="
+                background: transparent; 
+                color: white; 
+                border: 1px solid white; 
+                padding: 10px 20px; 
+                border-radius: 8px; 
+                cursor: pointer;">FERMER</button>
         </div>
 
         <script>
-            function askNotificationPermission() {
-                if (!("Notification" in window)) {
+            const authBtn = document.getElementById('auth-btn');
+            const closeBtn = document.getElementById('close-btn');
+            const banner = document.getElementById('notif-banner');
+
+            // Masquer si déjà autorisé
+            if (window.Notification && (Notification.permission === "granted" || Notification.permission === "denied")) {{
+                banner.style.display = "none";
+            }}
+
+            authBtn.addEventListener('click', function() {{
+                if (!("Notification" in window)) {{
                     alert("Ce navigateur ne supporte pas les notifications.");
                     return;
-                }
-                
-                Notification.requestPermission().then(permission => {
-                    if (permission === "granted") {
-                        new Notification("MAVA", {
-                            body: "Notifications activées avec succès !",
-                            icon: "https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/main/mon%20logo%20mava.png"
-                        });
-                        document.getElementById('notif-banner').style.display = 'none';
-                    } else {
-                        alert("Permission refusée. Vous devrez l'activer manuellement dans les réglages du site.");
-                        document.getElementById('notif-banner').style.display = 'none';
-                    }
-                });
-            }
+                }}
 
-            // Auto-check pour ne pas harceler le client
-            if (Notification.permission === "granted" || Notification.permission === "denied") {
-                document.getElementById('notif-banner').style.display = 'none';
-            }
+                Notification.requestPermission().then(permission => {{
+                    if (permission === "granted") {{
+                        new Notification("MAVA Système", {{
+                            body: "Les notifications sont activées !",
+                            icon: "https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/main/mon%20logo%20mava.png"
+                        }});
+                        banner.style.display = "none";
+                    }} else {{
+                        alert("Permission refusée. Vérifiez les réglages de votre téléphone.");
+                        banner.style.display = "none";
+                    }}
+                }});
+            }});
+
+            closeBtn.addEventListener('click', function() {{
+                banner.style.display = "none";
+            }});
         </script>
-    """, unsafe_allow_html=True)
+    """, height=160)
 
 # Toggle Mode
 col_left, col_mid, col_right = st.columns([0.7, 0.1, 0.2])
