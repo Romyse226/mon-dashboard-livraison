@@ -15,7 +15,6 @@ st.set_page_config(
 if "dark_mode" not in st.session_state:
     st.session_state.dark_mode = True 
 
-# Récupération immédiate si le numéro est dans l'URL
 if "vendeur_phone" not in st.session_state and "v" in st.query_params:
     st.session_state.vendeur_phone = st.query_params["v"]
 
@@ -61,16 +60,14 @@ with col_right:
         st.session_state.dark_mode = not st.session_state.dark_mode
         st.rerun()
 
-# ================= LOGIQUE DE CONNEXION AUTOMATIQUE (PWA) =================
+# ================= LOGIQUE D'AFFICHAGE =================
 if "vendeur_phone" not in st.session_state:
-    # 1. Ce script vérifie le disque dur du téléphone au chargement
+    # Script pour récupérer le numéro sauvegardé au démarrage
     components.html("""
         <script>
-            const savedPhone = localStorage.getItem('mava_saved_num');
-            const urlParams = new URLSearchParams(window.location.search);
-            if (savedPhone && !urlParams.has('v')) {
-                urlParams.set('v', savedPhone);
-                window.location.search = urlParams.toString();
+            const saved = localStorage.getItem('mava_saved_num');
+            if (saved && !window.location.search.includes('v=')) {
+                window.parent.location.href = window.parent.location.href + '?v=' + saved;
             }
         </script>
     """, height=0)
@@ -78,7 +75,7 @@ if "vendeur_phone" not in st.session_state:
     st.image("https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/main/mon%20logo%20mava.png", width=140)
     st.markdown("<h2 class='login-text'>Bienvenue</h2>", unsafe_allow_html=True)
     
-    # 2. Le champ est pré-rempli avec le numéro trouvé (si présent)
+    # Récupération du numéro pour le champ
     default_num = st.query_params.get("v", "")
     phone_input = st.text_input("Numéro", value=default_num, placeholder="07XXXXXXXX", label_visibility="collapsed")
     
@@ -87,22 +84,25 @@ if "vendeur_phone" not in st.session_state:
             num = phone_input.replace(" ", "").replace("+", "")
             if len(num) == 10 and num.startswith("0"): num = "225" + num
             
-            # 3. On sauvegarde physiquement dans le téléphone
-            st.session_state.vendeur_phone = num
-            st.query_params["v"] = num
-            components.html(f"""
-                <script>
-                    localStorage.setItem('mava_saved_num', '{num}');
-                    window.parent.location.href = window.parent.location.href + '?v={num}';
-                </script>
-            """, height=0)
-            st.rerun()
+            # --- VÉRIFICATION SÉCURITÉ ---
+            # On vérifie si ce numéro existe au moins une fois dans la table
+            check = supabase.table("orders").select("phone_vendeur").eq("phone_vendeur", num).limit(1).execute()
+            
+            if check.data:
+                st.session_state.vendeur_phone = num
+                st.query_params["v"] = num
+                # Sauvegarde disque pour la prochaine fois
+                components.html(f"<script>localStorage.setItem('mava_saved_num', '{num}');</script>", height=0)
+                st.rerun()
+            else:
+                st.error("Ce numéro n'est pas reconnu comme vendeur.")
+
 else:
     # ================= DASHBOARD =================
     vendeur_phone = st.session_state.vendeur_phone
     
+    # Bouton de déconnexion (Remis comme promis)
     if st.button("Se déconnecter 🚪", key="logout"):
-        # On vide tout pour permettre un changement de compte
         components.html("<script>localStorage.removeItem('mava_saved_num');</script>", height=0)
         del st.session_state.vendeur_phone
         st.query_params.clear()
@@ -110,11 +110,9 @@ else:
 
     st.markdown("<span class='main-title'>Mes Commandes</span>", unsafe_allow_html=True)
 
-    try:
-        res = supabase.table("orders").select("*").eq("phone_vendeur", vendeur_phone).order("created_at", desc=True).execute()
-        orders = res.data or []
-    except:
-        orders = []
+    # Récupération sécurisée : Uniquement les données du numéro connecté
+    res = supabase.table("orders").select("*").eq("phone_vendeur", vendeur_phone).order("created_at", desc=True).execute()
+    orders = res.data or []
 
     pending = [o for o in orders if o["statut"] != "Livré"]
     done = [o for o in orders if o["statut"] == "Livré"]
@@ -123,7 +121,7 @@ else:
 
     with tab1:
         if not pending:
-            st.markdown(f"<p style='text-align:center; color:{sub_text};'>Aucune commande.</p>", unsafe_allow_html=True)
+            st.markdown(f"<p style='text-align:center; color:{sub_text};'>Aucune commande en cours.</p>", unsafe_allow_html=True)
         for order in pending:
             st.markdown(f"""
             <div class="card pending">
@@ -147,5 +145,7 @@ else:
             </div>
             """, unsafe_allow_html=True)
 
+# ================= FOOTER =================
+st.markdown(f'<div class="footer">MAVA © 2026 • Stable Sync Release</div>', unsafe_allow_html=True)
 # ================= FOOTER =================
 st.markdown(f'<div class="footer">MAVA © 2026 • Stable Sync Release</div>', unsafe_allow_html=True)
