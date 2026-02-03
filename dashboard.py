@@ -4,11 +4,21 @@ import time
 import streamlit.components.v1 as components
 
 # ================= CONFIG =================
+# Correction : Le page_title devient MAVA Board et l'icône est ton logo
+logo_url = "https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/3fe7b8570c28a48b298698ae7e6f8793f0add98d/mon%20logo%20mava.png"
+
 st.set_page_config(
-    page_title="MAVA",
+    page_title="MAVA Board",
+    page_icon=logo_url,
     layout="centered",
     initial_sidebar_state="collapsed"
 )
+
+# Injection HTML pour forcer l'icône sur Android et iOS (PWA)
+st.markdown(f"""
+    <link rel="apple-touch-icon" href="{logo_url}">
+    <link rel="icon" sizes="192x192" href="{logo_url}">
+""", unsafe_allow_html=True)
 
 # ================= SUPABASE =================
 @st.cache_resource
@@ -75,7 +85,6 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ================= GESTION DE LA MÉMOIRE (JS FORCÉ) =================
-# Ce script tourne en permanence pour s'assurer que si un numéro existe, il est dans l'URL
 components.html(f"""
     <script>
         const savedPhone = localStorage.getItem('mava_persistent_phone');
@@ -96,8 +105,7 @@ with col_right:
 
 # ================= LOGIQUE D'AFFICHAGE =================
 if "vendeur_phone" not in st.session_state:
-    # --- PAGE LOGIN ---
-    st.image("https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/main/mon%20logo%20mava.png", width=140)
+    st.image(logo_url, width=140)
     st.markdown("<h2 class='login-text'>Bienvenue</h2>", unsafe_allow_html=True)
     
     default_num = st.query_params.get("v", "")
@@ -110,7 +118,6 @@ if "vendeur_phone" not in st.session_state:
             
             check = supabase.table("orders").select("phone_vendeur").eq("phone_vendeur", num).limit(1).execute()
             if check.data:
-                # ENREGISTREMENT PERMANENT
                 components.html(f"""
                     <script>
                         localStorage.setItem('mava_persistent_phone', '{num}');
@@ -122,7 +129,6 @@ if "vendeur_phone" not in st.session_state:
             else:
                 st.error("Numéro non reconnu.")
 else:
-    # --- DASHBOARD ---
     v_phone = st.session_state.vendeur_phone
     
     if st.button("Se déconnecter 🚪"):
@@ -132,7 +138,6 @@ else:
 
     st.markdown("<span class='main-title'>Mes Commandes</span>", unsafe_allow_html=True)
 
-    # Filtrage strict par numéro
     res = supabase.table("orders").select("*").eq("phone_vendeur", v_phone).order("created_at", desc=True).execute()
     orders = res.data or []
 
