@@ -97,40 +97,79 @@ def fetch_data():
 # ================= INTERFACE PRINCIPALE =================
 inject_notification_logic()
 
-# Bannière Notification Mobile - Version Robuste
+# Bannière Notification Mobile (Point 3) - HTML et JS regroupés
+
 if "vendeur_phone" in st.session_state:
-    # On utilise st.components pour injecter le script au niveau du PARENT
-    st.markdown("""
-        <div id="notif-banner" style="background: #700D02; color: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center; font-family: sans-serif; position: relative; z-index: 9999;">
+
+    components.html("""
+
+        <div id="notif-banner" style="background: #700D02; color: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center; font-family: sans-serif;">
+
             📢 Activer les notifications pour ne rater aucune commande ?
+
             <br>
-            <button onclick="askNotif()" style="background: white; color: #700D02; border: none; padding: 8px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 10px;">AUTORISER</button>
-            <button onclick="document.getElementById('notif-banner').style.display='none'" style="background:transparent; color:white; border:1px solid white; padding: 8px 15px; border-radius: 5px; cursor: pointer; margin-top: 10px; margin-left:10px;">FERMER</button>
+
+            <button id="btn-auth" style="background: white; color: #700D02; border: none; padding: 8px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 10px;">AUTORISER</button>
+
+            <button id="btn-close" style="background:transparent; color:white; border:1px solid white; padding: 8px 15px; border-radius: 5px; cursor: pointer; margin-top: 10px;">FERMER</button>
+
         </div>
 
+
+
         <script>
-            function askNotif() {
-                // On tente de sortir de l'iframe pour demander au navigateur
-                if (!("Notification" in window)) {
-                    alert("Ce navigateur ne supporte pas les notifications.");
-                } else {
-                    Notification.requestPermission().then(function (permission) {
-                        if (permission === "granted") {
-                            new Notification("MAVA", { body: "Notifications activées avec succès !" });
-                            document.getElementById('notif-banner').style.display = 'none';
-                        } else {
-                            alert("Permission " + permission + ". Vérifiez les réglages de votre téléphone.");
-                        }
-                    });
-                }
-            }
+
+            const btnAuth = document.getElementById('btn-auth');
+
+            const btnClose = document.getElementById('btn-close');
+
+            const banner = document.getElementById('notif-banner');
+
+
+
+            btnAuth.onclick = function() {
+
+                Notification.requestPermission().then(permission => {
+
+                    if (permission === "granted") {
+
+                        alert("Notifications activées !");
+
+                        banner.style.display = "none";
+
+                    } else {
+
+                        alert("Vous avez refusé les notifications.");
+
+                        banner.style.display = "none";
+
+                    }
+
+                });
+
+            };
+
+
+
+            btnClose.onclick = function() {
+
+                banner.style.display = "none";
+
+            };
+
             
-            // Auto-hide si déjà accepté
-            if (window.Notification && Notification.permission !== "default") {
-                document.getElementById('notif-banner').style.display = 'none';
+
+            // Masquer si déjà autorisé
+
+            if (Notification.permission === "granted" || Notification.permission === "denied") {
+
+                banner.style.display = "none";
+
             }
+
         </script>
-    """, unsafe_allow_html=True) # On utilise markdown pour éviter l'iframe de components.html
+
+    """, height=150)
 
 # Toggle Mode
 col_left, col_mid, col_right = st.columns([0.7, 0.1, 0.2])
