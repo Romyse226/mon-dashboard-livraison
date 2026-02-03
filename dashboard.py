@@ -62,12 +62,12 @@ with col_right:
 
 # ================= LOGIQUE D'AFFICHAGE =================
 if "vendeur_phone" not in st.session_state:
-    # Script pour récupérer le numéro sauvegardé au démarrage
+    # Récupération automatique du numéro sauvegardé
     components.html("""
         <script>
             const saved = localStorage.getItem('mava_saved_num');
             if (saved && !window.location.search.includes('v=')) {
-                window.parent.location.href = window.parent.location.href + '?v=' + saved;
+                window.parent.location.search = '?v=' + saved;
             }
         </script>
     """, height=0)
@@ -75,7 +75,7 @@ if "vendeur_phone" not in st.session_state:
     st.image("https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/main/mon%20logo%20mava.png", width=140)
     st.markdown("<h2 class='login-text'>Bienvenue</h2>", unsafe_allow_html=True)
     
-    # Récupération du numéro pour le champ
+    # Champ pré-rempli via l'URL (v=...)
     default_num = st.query_params.get("v", "")
     phone_input = st.text_input("Numéro", value=default_num, placeholder="07XXXXXXXX", label_visibility="collapsed")
     
@@ -84,24 +84,20 @@ if "vendeur_phone" not in st.session_state:
             num = phone_input.replace(" ", "").replace("+", "")
             if len(num) == 10 and num.startswith("0"): num = "225" + num
             
-            # --- VÉRIFICATION SÉCURITÉ ---
-            # On vérifie si ce numéro existe au moins une fois dans la table
+            # Vérification si le vendeur existe
             check = supabase.table("orders").select("phone_vendeur").eq("phone_vendeur", num).limit(1).execute()
             
             if check.data:
                 st.session_state.vendeur_phone = num
                 st.query_params["v"] = num
-                # Sauvegarde disque pour la prochaine fois
                 components.html(f"<script>localStorage.setItem('mava_saved_num', '{num}');</script>", height=0)
                 st.rerun()
             else:
-                st.error("Ce numéro n'est pas reconnu comme vendeur.")
-
+                st.error("Numéro non reconnu.")
 else:
     # ================= DASHBOARD =================
     vendeur_phone = st.session_state.vendeur_phone
     
-    # Bouton de déconnexion (Remis comme promis)
     if st.button("Se déconnecter 🚪", key="logout"):
         components.html("<script>localStorage.removeItem('mava_saved_num');</script>", height=0)
         del st.session_state.vendeur_phone
@@ -110,7 +106,6 @@ else:
 
     st.markdown("<span class='main-title'>Mes Commandes</span>", unsafe_allow_html=True)
 
-    # Récupération sécurisée : Uniquement les données du numéro connecté
     res = supabase.table("orders").select("*").eq("phone_vendeur", vendeur_phone).order("created_at", desc=True).execute()
     orders = res.data or []
 
@@ -121,14 +116,18 @@ else:
 
     with tab1:
         if not pending:
-            st.markdown(f"<p style='text-align:center; color:{sub_text};'>Aucune commande en cours.</p>", unsafe_allow_html=True)
+            st.markdown(f"<p style='text-align:center; color:{sub_text};'>Aucune commande.</p>", unsafe_allow_html=True)
         for order in pending:
+            # Correction prix : float puis int pour éviter le crash
+            prix_brut = order.get('prix', 0)
+            prix_clean = int(float(prix_brut)) if prix_brut else 0
+            
             st.markdown(f"""
             <div class="card pending">
                 <div class="badge badge-pending">À LIVRER 📦</div>
-                <div class="info-line">👤 <b>Client :</b> {order.get('nom_client','—')}</div>
+                <div class="info-line">🔢 <b>Commande :</b> #{order.get('order_number','—')}</div>
                 <div class="info-line">📍 <b>Lieu :</b> {order.get('quartier','—')}</div>
-                <div class="price">{int(order.get('prix', 0)):,} FCFA</div>
+                <div class="price">{prix_clean:,} FCFA</div>
             </div>
             """, unsafe_allow_html=True)
             if st.button("MARQUER COMME LIVRÉ", key=f"p_{order['id']}"):
@@ -137,15 +136,16 @@ else:
 
     with tab2:
         for order in done:
+            prix_brut = order.get('prix', 0)
+            prix_clean = int(float(prix_brut)) if prix_brut else 0
+            
             st.markdown(f"""
             <div class="card done">
                 <div class="badge badge-done">LIVRÉE ✅</div>
-                <div class="info-line">👤 <b>Client :</b> {order.get('nom_client','—')}</div>
-                <div class="price" style="color:#1FA24A !important;">{int(order.get('prix', 0)):,} FCFA</div>
+                <div class="info-line">🔢 <b>Commande :</b> #{order.get('order_number','—')}</div>
+                <div class="price" style="color:#1FA24A !important;">{prix_clean:,} FCFA</div>
             </div>
             """, unsafe_allow_html=True)
 
-# ================= FOOTER =================
-st.markdown(f'<div class="footer">MAVA © 2026 • Stable Sync Release</div>', unsafe_allow_html=True)
-# ================= FOOTER =================
+# ================= FOOTER UNIQUE =================
 st.markdown(f'<div class="footer">MAVA © 2026 • Stable Sync Release</div>', unsafe_allow_html=True)
