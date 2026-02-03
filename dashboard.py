@@ -149,3 +149,5 @@ else:
 
 # ================= FOOTER UNIQUE =================
 st.markdown(f'<div class="footer">MAVA © 2026 • Stable Sync Release</div>', unsafe_allow_html=True)
+# ================= FOOTER UNIQUE =================
+st.markdown(f'<div class="footer">MAVA © 2026 • Stable Sync Release</div>', unsafe_allow_html=True)
