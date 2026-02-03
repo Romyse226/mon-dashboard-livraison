@@ -20,6 +20,10 @@ supabase = get_supabase()
 if "dark_mode" not in st.session_state:
     st.session_state.dark_mode = True 
 
+# Récupération depuis l'URL (mis à jour par le JS plus bas)
+if "vendeur_phone" not in st.session_state and "v" in st.query_params:
+    st.session_state.vendeur_phone = st.query_params["v"]
+
 # ================= COULEURS DYNAMIQUES =================
 bg_color = "#000000" if st.session_state.dark_mode else "#FFFFFF"
 card_bg = "#121212" if st.session_state.dark_mode else "#FFFFFF"
@@ -45,15 +49,16 @@ st.markdown(f"""
     .price {{ font-size: 1.4rem; font-weight: 900; color: {price_color} !important; margin-top: 10px; }}
     .stTabs [data-baseweb="tab"] p {{ color: {text_color} !important; }}
     
-    /* INTERACTION BOUTON */
+    /* EFFET SURBRILLANCE CLIC */
     div.stButton > button {{ 
         width: 100%; border-radius: 10px !important; height: 48px; font-weight: 700 !important; 
         background-color: #700D02 !important; color: white !important; border: none !important;
+        transition: all 0.1s ease;
     }}
     div.stButton > button:active {{ 
         background-color: #FF0000 !important;
+        box-shadow: 0 0 15px #FF0000;
         transform: scale(0.98);
-        box-shadow: 0 0 20px rgba(255,0,0,0.4);
     }}
     
     .wa-btn {{ 
@@ -61,46 +66,73 @@ st.markdown(f"""
         color: #000000 !important; text-decoration: none; padding: 12px; border-radius: 10px; 
         font-weight: 800; margin-top: 10px; text-align: center;
     }}
+    .wa-btn:active {{ background-color: #128C7E; transform: scale(0.98); }}
     
     .separator {{ border: 0; height: 1px; background: {hr_color}; margin: 20px 0; opacity: 0.3; }}
+    .login-text {{ color: {text_color} !important; font-weight: 600; }}
     .footer {{ margin-top: 50px; padding: 20px; text-align: center; color: {sub_text}; font-size: 0.75rem; border-top: 1px solid {border_color}; }}
 </style>
 """, unsafe_allow_html=True)
 
-# ================= LOGIQUE CONNEXION =================
+# ================= GESTION DE LA MÉMOIRE (JS FORCÉ) =================
+# Ce script tourne en permanence pour s'assurer que si un numéro existe, il est dans l'URL
+components.html(f"""
+    <script>
+        const savedPhone = localStorage.getItem('mava_persistent_phone');
+        const urlParams = new URLSearchParams(window.location.search);
+        if (savedPhone && urlParams.get('v') !== savedPhone) {{
+            urlParams.set('v', savedPhone);
+            window.parent.location.search = urlParams.toString();
+        }}
+    </script>
+""", height=0)
+
+# ================= TOP BAR =================
+col_left, col_mid, col_right = st.columns([0.7, 0.1, 0.2])
+with col_right:
+    if st.button("☀️" if st.session_state.dark_mode else "🌙"):
+        st.session_state.dark_mode = not st.session_state.dark_mode
+        st.rerun()
+
+# ================= LOGIQUE D'AFFICHAGE =================
 if "vendeur_phone" not in st.session_state:
+    # --- PAGE LOGIN ---
     st.image("https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/main/mon%20logo%20mava.png", width=140)
-    st.markdown(f"<h2 style='color:{text_color}'>Bienvenue</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 class='login-text'>Bienvenue</h2>", unsafe_allow_html=True)
     
-    phone_input = st.text_input("Numéro", placeholder="07XXXXXXXX", label_visibility="collapsed")
+    default_num = st.query_params.get("v", "")
+    phone_input = st.text_input("Numéro", value=default_num, placeholder="07XXXXXXXX", label_visibility="collapsed")
     
     if st.button("Suivre mes commandes"):
         if phone_input.strip():
             num = phone_input.replace(" ", "").replace("+", "")
             if len(num) == 10 and num.startswith("0"): num = "225" + num
             
-            # Vérification Supabase : Seul un numéro présent dans la base peut entrer
             check = supabase.table("orders").select("phone_vendeur").eq("phone_vendeur", num).limit(1).execute()
-            
             if check.data:
+                # ENREGISTREMENT PERMANENT
+                components.html(f"""
+                    <script>
+                        localStorage.setItem('mava_persistent_phone', '{num}');
+                        window.parent.location.search = '?v={num}';
+                    </script>
+                """, height=0)
                 st.session_state.vendeur_phone = num
                 st.rerun()
             else:
-                st.error("Accès refusé : numéro non reconnu.")
-
+                st.error("Numéro non reconnu.")
 else:
-    # ================= DASHBOARD =================
+    # --- DASHBOARD ---
     v_phone = st.session_state.vendeur_phone
     
-    col_dash, col_out = st.columns([0.8, 0.2])
-    with col_out:
-        if st.button("🚪"):
-            del st.session_state.vendeur_phone
-            st.rerun()
+    if st.button("Se déconnecter 🚪"):
+        components.html("<script>localStorage.removeItem('mava_persistent_phone'); window.parent.location.search = '';</script>", height=0)
+        del st.session_state.vendeur_phone
+        st.rerun()
 
     st.markdown("<span class='main-title'>Mes Commandes</span>", unsafe_allow_html=True)
 
-    # FILTRE STRICT : On ne récupère que les lignes de CE vendeur
+    # Filtrage strict par numéro
     res = supabase.table("orders").select("*").eq("phone_vendeur", v_phone).order("created_at", desc=True).execute()
     orders = res.data or []
 
@@ -138,12 +170,12 @@ else:
         st.markdown('</div><div class="separator"></div>', unsafe_allow_html=True)
 
     with tab1:
-        p_orders = [o for o in orders if o["statut"] != "Livré"]
-        if not p_orders: st.info("Aucune commande en cours.")
-        for o in p_orders: display_order(o, True)
+        pending = [o for o in orders if o["statut"] != "Livré"]
+        if not pending: st.info("Aucune commande en cours.")
+        for o in pending: display_order(o, True)
 
     with tab2:
-        d_orders = [o for o in orders if o["statut"] == "Livré"]
-        for o in d_orders: display_order(o, False)
+        done = [o for o in orders if o["statut"] == "Livré"]
+        for o in done: display_order(o, False)
 
 st.markdown('<div class="footer">MAVA © 2026 • Stable Sync Release</div>', unsafe_allow_html=True)
