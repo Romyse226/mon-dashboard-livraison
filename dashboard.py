@@ -15,6 +15,7 @@ st.set_page_config(
 if "dark_mode" not in st.session_state:
     st.session_state.dark_mode = True 
 
+# Récupération immédiate si le numéro est dans l'URL
 if "vendeur_phone" not in st.session_state and "v" in st.query_params:
     st.session_state.vendeur_phone = st.query_params["v"]
 
@@ -26,54 +27,22 @@ sub_text = "#BBBBBB" if st.session_state.dark_mode else "#666666"
 border_color = "#333333" if st.session_state.dark_mode else "#EEEEEE"
 price_color = "#FF0000" if st.session_state.dark_mode else "#700D02"
 
-# ================= CSS DYNAMIQUE (VÉRIFIÉ) =================
+# ================= CSS DYNAMIQUE =================
 st.markdown(f"""
 <style>
     .stApp {{ background-color: {bg_color} !important; }}
     #MainMenu, footer, header {{visibility: hidden;}}
-
-    .main-title {{ 
-        font-size: 2.2rem !important; 
-        font-weight: 800 !important; 
-        color: {text_color} !important;
-        display: block;
-        margin-top: 10px;
-    }}
-
-    .card {{
-        position: relative;
-        border-radius: 15px;
-        padding: 20px;
-        margin-bottom: 20px;
-        background: {card_bg};
-        border: 1px solid {border_color};
-        box-shadow: 0px 4px 15px rgba(0,0,0,0.4);
-        overflow: hidden;
-    }}
-    
-    .card.pending::before {{ content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: #FF0000; box-shadow: 2px 0px 12px #FF0000; }}
-    .card.done::before {{ content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: #1FA24A; box-shadow: 2px 0px 12px #1FA24A; }}
-
+    .main-title {{ font-size: 2.2rem !important; font-weight: 800 !important; color: {text_color} !important; display: block; margin-top: 10px; }}
+    .card {{ position: relative; border-radius: 15px; padding: 20px; margin-bottom: 20px; background: {card_bg}; border: 1px solid {border_color}; box-shadow: 0px 4px 15px rgba(0,0,0,0.4); overflow: hidden; }}
+    .card.pending::before {{ content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: #FF0000; }}
+    .card.done::before {{ content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: #1FA24A; }}
     .badge {{ position: absolute; top: 15px; right: 15px; padding: 5px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: bold; color: white; }}
     .badge-pending {{ background-color: #FF0000; }}
     .badge-done {{ background-color: #1FA24A; }}
-
     .info-line {{ margin-bottom: 6px; font-size: 1.1rem; color: {text_color} !important; }}
     .price {{ font-size: 1.5rem; font-weight: 900; color: {price_color} !important; margin-top: 10px; }}
-
-    /* Correction texte onglets pour Mode Clair */
     .stTabs [data-baseweb="tab"] p {{ color: {text_color} !important; }}
-
-    div.stButton > button {{
-        width: 100%;
-        border-radius: 10px !important;
-        height: 50px;
-        font-weight: 700 !important;
-        background-color: #700D02 !important;
-        color: #FFFFFF !important;
-        border: none !important;
-    }}
-    
+    div.stButton > button {{ width: 100%; border-radius: 10px !important; height: 50px; font-weight: 700 !important; background-color: #700D02 !important; color: #FFFFFF !important; border: none !important; }}
     .login-text {{ color: {text_color} !important; font-weight: 600; text-align: left !important; }}
     .footer {{ margin-top: 50px; padding: 20px; text-align: center; color: {sub_text}; font-size: 0.75rem; border-top: 1px solid {border_color}; }}
 </style>
@@ -92,42 +61,53 @@ with col_right:
         st.session_state.dark_mode = not st.session_state.dark_mode
         st.rerun()
 
-# ================= LOGIQUE MÉMOIRE LOCALE =================
+# ================= LOGIQUE DE CONNEXION AUTOMATIQUE (PWA) =================
 if "vendeur_phone" not in st.session_state:
-    # Récupère le numéro stocké dans le téléphone au démarrage
+    # 1. Ce script vérifie le disque dur du téléphone au chargement
     components.html("""
         <script>
-            const saved = localStorage.getItem('mava_saved_num');
-            if (saved && !window.location.search.includes('v=')) {
-                const url = new URL(window.location.href);
-                url.searchParams.set('v', saved);
-                window.location.href = url.href;
+            const savedPhone = localStorage.getItem('mava_saved_num');
+            const urlParams = new URLSearchParams(window.location.search);
+            if (savedPhone && !urlParams.has('v')) {
+                urlParams.set('v', savedPhone);
+                window.location.search = urlParams.toString();
             }
         </script>
     """, height=0)
 
     st.image("https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/main/mon%20logo%20mava.png", width=140)
     st.markdown("<h2 class='login-text'>Bienvenue</h2>", unsafe_allow_html=True)
-    st.markdown("<p class='login-text' style='font-weight:400;'>Entre ton numéro pour suivre tes commandes</p>", unsafe_allow_html=True)
     
-    # Pré-remplissage automatique
-    saved_num = st.query_params.get("v", "")
-    phone_input = st.text_input("Numéro", value=saved_num, placeholder="07XXXXXXXX", label_visibility="collapsed")
+    # 2. Le champ est pré-rempli avec le numéro trouvé (si présent)
+    default_num = st.query_params.get("v", "")
+    phone_input = st.text_input("Numéro", value=default_num, placeholder="07XXXXXXXX", label_visibility="collapsed")
     
     if st.button("Suivre mes commandes"):
         if phone_input.strip():
             num = phone_input.replace(" ", "").replace("+", "")
             if len(num) == 10 and num.startswith("0"): num = "225" + num
             
+            # 3. On sauvegarde physiquement dans le téléphone
             st.session_state.vendeur_phone = num
             st.query_params["v"] = num
-            # Sauvegarde dans le téléphone
-            components.html(f"<script>localStorage.setItem('mava_saved_num', '{num}');</script>", height=0)
+            components.html(f"""
+                <script>
+                    localStorage.setItem('mava_saved_num', '{num}');
+                    window.parent.location.href = window.parent.location.href + '?v={num}';
+                </script>
+            """, height=0)
             st.rerun()
 else:
     # ================= DASHBOARD =================
     vendeur_phone = st.session_state.vendeur_phone
     
+    if st.button("Se déconnecter 🚪", key="logout"):
+        # On vide tout pour permettre un changement de compte
+        components.html("<script>localStorage.removeItem('mava_saved_num');</script>", height=0)
+        del st.session_state.vendeur_phone
+        st.query_params.clear()
+        st.rerun()
+
     st.markdown("<span class='main-title'>Mes Commandes</span>", unsafe_allow_html=True)
 
     try:
@@ -169,10 +149,3 @@ else:
 
 # ================= FOOTER =================
 st.markdown(f'<div class="footer">MAVA © 2026 • Stable Sync Release</div>', unsafe_allow_html=True)
-
-# Auto-refresh
-if "vendeur_phone" in st.session_state:
-    if "last_refresh" not in st.session_state: st.session_state.last_refresh = time.time()
-    if time.time() - st.session_state.last_refresh > 30:
-        st.session_state.last_refresh = time.time()
-        st.rerun()
