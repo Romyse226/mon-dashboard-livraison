@@ -97,15 +97,43 @@ def fetch_data():
 # ================= INTERFACE PRINCIPALE =================
 inject_notification_logic()
 
-# Bannière Notification Mobile (Point 3)
+# Bannière Notification Mobile (Point 3) - HTML et JS regroupés
 if "vendeur_phone" in st.session_state:
-    st.markdown("""
-        <div id="notif-banner" class="notif-banner">
+    components.html("""
+        <div id="notif-banner" style="background: #700D02; color: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center; font-family: sans-serif;">
             📢 Activer les notifications pour ne rater aucune commande ?
-            <br><button class="notif-btn" onclick="requestPermission()">AUTORISER</button>
-            <button class="notif-btn" style="background:transparent; color:white; border:1px solid white;" onclick="this.parentElement.style.display='none'">FERMER</button>
+            <br>
+            <button id="btn-auth" style="background: white; color: #700D02; border: none; padding: 8px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 10px;">AUTORISER</button>
+            <button id="btn-close" style="background:transparent; color:white; border:1px solid white; padding: 8px 15px; border-radius: 5px; cursor: pointer; margin-top: 10px;">FERMER</button>
         </div>
-    """, unsafe_allow_html=True)
+
+        <script>
+            const btnAuth = document.getElementById('btn-auth');
+            const btnClose = document.getElementById('btn-close');
+            const banner = document.getElementById('notif-banner');
+
+            btnAuth.onclick = function() {
+                Notification.requestPermission().then(permission => {
+                    if (permission === "granted") {
+                        alert("Notifications activées !");
+                        banner.style.display = "none";
+                    } else {
+                        alert("Vous avez refusé les notifications.");
+                        banner.style.display = "none";
+                    }
+                });
+            };
+
+            btnClose.onclick = function() {
+                banner.style.display = "none";
+            };
+            
+            // Masquer si déjà autorisé
+            if (Notification.permission === "granted" || Notification.permission === "denied") {
+                banner.style.display = "none";
+            }
+        </script>
+    """, height=150)
 
 # Toggle Mode
 col_left, col_mid, col_right = st.columns([0.7, 0.1, 0.2])
