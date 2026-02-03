@@ -178,17 +178,34 @@ with col_right:
 
 # ================= LOGIN / DASHBOARD LOGIC =================
 if "vendeur_phone" not in st.session_state:
-    # (Bloc Login inchangé mais sécurisé)
+    # Récupération du numéro stocké localement dans le JS du navigateur
+    components.html("""
+        <script>
+            const savedPhone = localStorage.getItem('mava_phone');
+            if (savedPhone && !window.location.search.includes('v=')) {
+                const url = new URL(window.location.href);
+                url.searchParams.set('v', savedPhone);
+                window.location.href = url.href;
+            }
+        </script>
+    """, height=0)
+
     st.image("https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/main/mon%20logo%20mava.png", width=140)
     st.markdown(f"<h2 class='login-text'>Bienvenue</h2>", unsafe_allow_html=True)
-    phone_input = st.text_input("Numéro", placeholder="07XXXXXXXX", label_visibility="collapsed")
+    
+    # Valeur par défaut si déjà connue
+    default_phone = st.query_params.get("v", "")
+    phone_input = st.text_input("Numéro", value=default_phone, placeholder="07XXXXXXXX", label_visibility="collapsed")
+    
     if st.button("Suivre mes commandes"):
         if phone_input.strip():
-            # Normalisation et injection session
             num = phone_input.replace(" ", "").replace("+", "")
             if len(num) == 10 and num.startswith("0"): num = "225" + num
+            
+            # Sauvegarde persistante dans le navigateur
             st.session_state.vendeur_phone = num
             st.query_params["v"] = num
+            components.html(f"<script>localStorage.setItem('mava_phone', '{num}');</script>", height=0)
             st.rerun()
 else:
     # Dashboard avec Sync forcée
@@ -213,7 +230,6 @@ else:
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # Action Update (Point 1)
                 if st.button("MARQUER COMME LIVRÉ", key=f"btn_{order['id']}"):
                     supabase.table("orders").update({"statut": "Livré"}).eq("id", order['id']).execute()
                     st.toast("Statut mis à jour sur Supabase !")
@@ -235,5 +251,5 @@ st.markdown(f'<div class="footer">MAVA © 2026 • Stable Sync Release</div>', u
 
 # Auto-refresh intelligent pour la synchro (Point 4)
 if "vendeur_phone" in st.session_state:
-    time.sleep(2) # Petite pause pour laisser respirer le serveur
+    time.sleep(2) 
     st.rerun()
