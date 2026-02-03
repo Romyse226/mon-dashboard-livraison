@@ -26,7 +26,7 @@ sub_text = "#BBBBBB" if st.session_state.dark_mode else "#666666"
 border_color = "#333333" if st.session_state.dark_mode else "#EEEEEE"
 price_color = "#FF0000" if st.session_state.dark_mode else "#700D02"
 
-# ================= CSS DYNAMIQUE (FIXÉ POUR MODE CLAIR) =================
+# ================= CSS DYNAMIQUE (VÉRIFIÉ) =================
 st.markdown(f"""
 <style>
     .stApp {{ background-color: {bg_color} !important; }}
@@ -61,10 +61,8 @@ st.markdown(f"""
     .info-line {{ margin-bottom: 6px; font-size: 1.1rem; color: {text_color} !important; }}
     .price {{ font-size: 1.5rem; font-weight: 900; color: {price_color} !important; margin-top: 10px; }}
 
-    /* Correction couleur texte onglets */
-    .stTabs [data-baseweb="tab"] p {{
-        color: {text_color} !important;
-    }}
+    /* Correction texte onglets pour Mode Clair */
+    .stTabs [data-baseweb="tab"] p {{ color: {text_color} !important; }}
 
     div.stButton > button {{
         width: 100%;
@@ -81,15 +79,11 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
-# ================= UTILS =================
+# ================= SUPABASE =================
 @st.cache_resource
 def get_supabase():
     return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 supabase = get_supabase()
-
-def fetch_data(phone):
-    res = supabase.table("orders").select("*").eq("phone_vendeur", phone).order("created_at", desc=True).execute()
-    return res.data or []
 
 # ================= TOP BAR =================
 col_left, col_mid, col_right = st.columns([0.7, 0.1, 0.2])
@@ -98,44 +92,50 @@ with col_right:
         st.session_state.dark_mode = not st.session_state.dark_mode
         st.rerun()
 
-# ================= LOGIQUE D'AFFICHAGE =================
+# ================= LOGIQUE MÉMOIRE LOCALE =================
 if "vendeur_phone" not in st.session_state:
-    # --- PAGE LOGIN ---
+    # Récupère le numéro stocké dans le téléphone au démarrage
+    components.html("""
+        <script>
+            const saved = localStorage.getItem('mava_saved_num');
+            if (saved && !window.location.search.includes('v=')) {
+                const url = new URL(window.location.href);
+                url.searchParams.set('v', saved);
+                window.location.href = url.href;
+            }
+        </script>
+    """, height=0)
+
     st.image("https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/main/mon%20logo%20mava.png", width=140)
     st.markdown("<h2 class='login-text'>Bienvenue</h2>", unsafe_allow_html=True)
     st.markdown("<p class='login-text' style='font-weight:400;'>Entre ton numéro pour suivre tes commandes</p>", unsafe_allow_html=True)
     
-    phone_input = st.text_input("Numéro", placeholder="07XXXXXXXX", label_visibility="collapsed")
+    # Pré-remplissage automatique
+    saved_num = st.query_params.get("v", "")
+    phone_input = st.text_input("Numéro", value=saved_num, placeholder="07XXXXXXXX", label_visibility="collapsed")
     
     if st.button("Suivre mes commandes"):
         if phone_input.strip():
             num = phone_input.replace(" ", "").replace("+", "")
             if len(num) == 10 and num.startswith("0"): num = "225" + num
+            
             st.session_state.vendeur_phone = num
             st.query_params["v"] = num
+            # Sauvegarde dans le téléphone
+            components.html(f"<script>localStorage.setItem('mava_saved_num', '{num}');</script>", height=0)
             st.rerun()
 else:
-    # --- DASHBOARD ---
+    # ================= DASHBOARD =================
     vendeur_phone = st.session_state.vendeur_phone
     
-    # Bouton de déconnexion discret
-    if st.button("Se déconnecter 🚪", key="logout"):
-        del st.session_state.vendeur_phone
-        st.query_params.clear()
-        st.rerun()
-
     st.markdown("<span class='main-title'>Mes Commandes</span>", unsafe_allow_html=True)
 
-    # Notifs (uniquement si connecté)
-    components.html(f"""
-        <script>
-        if (window.Notification && Notification.permission === "default") {{
-            // On peut ajouter ici un petit rappel discret si besoin
-        }}
-        </script>
-    """, height=0)
+    try:
+        res = supabase.table("orders").select("*").eq("phone_vendeur", vendeur_phone).order("created_at", desc=True).execute()
+        orders = res.data or []
+    except:
+        orders = []
 
-    orders = fetch_data(vendeur_phone)
     pending = [o for o in orders if o["statut"] != "Livré"]
     done = [o for o in orders if o["statut"] == "Livré"]
 
@@ -143,7 +143,7 @@ else:
 
     with tab1:
         if not pending:
-            st.markdown(f"<p style='text-align:center; color:{sub_text};'>Aucune commande en cours.</p>", unsafe_allow_html=True)
+            st.markdown(f"<p style='text-align:center; color:{sub_text};'>Aucune commande.</p>", unsafe_allow_html=True)
         for order in pending:
             st.markdown(f"""
             <div class="card pending">
@@ -153,13 +153,11 @@ else:
                 <div class="price">{int(order.get('prix', 0)):,} FCFA</div>
             </div>
             """, unsafe_allow_html=True)
-            if st.button("MARQUER COMME LIVRÉ", key=f"btn_{order['id']}"):
+            if st.button("MARQUER COMME LIVRÉ", key=f"p_{order['id']}"):
                 supabase.table("orders").update({"statut": "Livré"}).eq("id", order['id']).execute()
                 st.rerun()
 
     with tab2:
-        if not done:
-            st.markdown(f"<p style='text-align:center; color:{sub_text};'>Aucune commande livrée.</p>", unsafe_allow_html=True)
         for order in done:
             st.markdown(f"""
             <div class="card done">
@@ -172,9 +170,9 @@ else:
 # ================= FOOTER =================
 st.markdown(f'<div class="footer">MAVA © 2026 • Stable Sync Release</div>', unsafe_allow_html=True)
 
-# Refresh automatique toutes les 30s si connecté
+# Auto-refresh
 if "vendeur_phone" in st.session_state:
-    if "last_ts" not in st.session_state: st.session_state.last_ts = time.time()
-    if time.time() - st.session_state.last_ts > 30:
-        st.session_state.last_ts = time.time()
+    if "last_refresh" not in st.session_state: st.session_state.last_refresh = time.time()
+    if time.time() - st.session_state.last_refresh > 30:
+        st.session_state.last_refresh = time.time()
         st.rerun()
