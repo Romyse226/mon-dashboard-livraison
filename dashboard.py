@@ -5,19 +5,15 @@ import streamlit.components.v1 as components
 
 # ================= CONFIG =================
 # Conversion du lien GitHub en lien "Raw" pour que l'image soit lisible par l'appli
-logo_url = "https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/3fe7b8570c28a48b298698ae7e6f8793f0add98d/mon%20logo%20mava.png"
-
 st.set_page_config(
     page_title="MAVA Board",
-    page_icon=logo_url,
-    layout="centered",
-    initial_sidebar_state="collapsed"
+    page_icon="https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/main/mon%20logo%20mava.png"
 )
 
-# Injection HTML pour l'icône sur l'écran d'accueil du téléphone
-st.markdown(f"""
-    <link rel="apple-touch-icon" href="{logo_url}">
-    <link rel="icon" sizes="192x192" href="{logo_url}">
+# 2. Pour forcer l'icône sur le téléphone (Juste en dessous)
+st.markdown("""
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/main/mon%20logo%20mava.png">
+    <link rel="icon" sizes="192x192" href="https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/main/mon%20logo%20mava.png">
 """, unsafe_allow_html=True)
 
 # ================= SUPABASE =================
