@@ -3,17 +3,21 @@ from supabase import create_client
 import time
 import streamlit.components.v1 as components
 
-# ================= CONFIG =================
-# Conversion du lien GitHub en lien "Raw" pour que l'image soit lisible par l'appli
+# ================= CONFIG (DÉFINITION DU LOGO) =================
+# On définit l'URL ici pour qu'elle soit accessible partout dans le code
+logo_url = "https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/main/mon%20logo%20mava.png"
+
 st.set_page_config(
     page_title="MAVA Board",
-    page_icon="https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/main/mon%20logo%20mava.png"
+    page_icon=logo_url,
+    layout="centered",
+    initial_sidebar_state="collapsed"
 )
 
-# 2. Pour forcer l'icône sur le téléphone (Juste en dessous)
-st.markdown("""
-    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/main/mon%20logo%20mava.png">
-    <link rel="icon" sizes="192x192" href="https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/main/mon%20logo%20mava.png">
+# Injection HTML pour l'icône de l'écran d'accueil
+st.markdown(f"""
+    <link rel="apple-touch-icon" href="{logo_url}">
+    <link rel="icon" sizes="192x192" href="{logo_url}">
 """, unsafe_allow_html=True)
 
 # ================= SUPABASE =================
@@ -70,7 +74,6 @@ st.markdown(f"""
         color: #000000 !important; text-decoration: none; padding: 12px; border-radius: 10px; 
         font-weight: 800; margin-top: 10px; text-align: center;
     }}
-    .wa-btn:active {{ background-color: #128C7E; transform: scale(0.98); }}
     
     .separator {{ border: 0; height: 1px; background: {hr_color}; margin: 20px 0; opacity: 0.3; }}
     .login-text {{ color: {text_color} !important; font-weight: 600; }}
@@ -99,6 +102,7 @@ with col_right:
 
 # ================= LOGIQUE D'AFFICHAGE =================
 if "vendeur_phone" not in st.session_state:
+    # --- PAGE LOGIN ---
     st.image(logo_url, width=140)
     st.markdown("<h2 class='login-text'>Bienvenue</h2>", unsafe_allow_html=True)
     
@@ -123,6 +127,7 @@ if "vendeur_phone" not in st.session_state:
             else:
                 st.error("Numéro non reconnu.")
 else:
+    # --- DASHBOARD ---
     v_phone = st.session_state.vendeur_phone
     
     if st.button("Se déconnecter 🚪"):
@@ -169,12 +174,12 @@ else:
         st.markdown('</div><div class="separator"></div>', unsafe_allow_html=True)
 
     with tab1:
-        pending = [o for o in orders if o["statut"] != "Livré"]
-        if not pending: st.info("Aucune commande en cours.")
-        for o in pending: display_order(o, True)
+        p_orders = [o for o in orders if o["statut"] != "Livré"]
+        if not p_orders: st.info("Aucune commande en cours.")
+        for o in p_orders: display_order(o, True)
 
     with tab2:
-        done = [o for o in orders if o["statut"] == "Livré"]
-        for o in done: display_order(o, False)
+        d_orders = [o for o in orders if o["statut"] == "Livré"]
+        for o in d_orders: display_order(o, False)
 
 st.markdown('<div class="footer">MAVA © 2026 • Stable Sync Release</div>', unsafe_allow_html=True)
