@@ -4,7 +4,7 @@ import time
 import streamlit.components.v1 as components
 
 # ================= CONFIG =================
-# Correction : Le page_title devient MAVA Board et l'icône est ton logo
+# Conversion du lien GitHub en lien "Raw" pour que l'image soit lisible par l'appli
 logo_url = "https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/3fe7b8570c28a48b298698ae7e6f8793f0add98d/mon%20logo%20mava.png"
 
 st.set_page_config(
@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Injection HTML pour forcer l'icône sur Android et iOS (PWA)
+# Injection HTML pour l'icône sur l'écran d'accueil du téléphone
 st.markdown(f"""
     <link rel="apple-touch-icon" href="{logo_url}">
     <link rel="icon" sizes="192x192" href="{logo_url}">
@@ -30,7 +30,6 @@ supabase = get_supabase()
 if "dark_mode" not in st.session_state:
     st.session_state.dark_mode = True 
 
-# Récupération depuis l'URL (mis à jour par le JS plus bas)
 if "vendeur_phone" not in st.session_state and "v" in st.query_params:
     st.session_state.vendeur_phone = st.query_params["v"]
 
@@ -59,7 +58,6 @@ st.markdown(f"""
     .price {{ font-size: 1.4rem; font-weight: 900; color: {price_color} !important; margin-top: 10px; }}
     .stTabs [data-baseweb="tab"] p {{ color: {text_color} !important; }}
     
-    /* EFFET SURBRILLANCE CLIC */
     div.stButton > button {{ 
         width: 100%; border-radius: 10px !important; height: 48px; font-weight: 700 !important; 
         background-color: #700D02 !important; color: white !important; border: none !important;
@@ -84,7 +82,7 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
-# ================= GESTION DE LA MÉMOIRE (JS FORCÉ) =================
+# ================= GESTION DE LA MÉMOIRE (JS) =================
 components.html(f"""
     <script>
         const savedPhone = localStorage.getItem('mava_persistent_phone');
