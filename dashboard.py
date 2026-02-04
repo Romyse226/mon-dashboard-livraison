@@ -4,22 +4,21 @@ import time
 import streamlit.components.v1 as components
 
 # ================= CONFIG =================
-# Ajout d'un paramètre ?v=1 pour forcer le rafraîchissement du logo
-logo_url = "https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/main/mon%20logo%20mava.png?v=1"
+logo_url = "https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/3fe7b8570c28a48b298698ae7e6f8793f0add98d/mon%20logo%20mava.png"
 
 st.set_page_config(
     page_title="MAVA Board",
-    page_icon=logo_url,
+    page_icon=logo_url, # C'est ce qui fait que ça marche sur PC
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
-# Injection HTML ultra-précise pour Android/iOS
+# Injection HTML spécifique pour iPhone et Android
 st.markdown(f"""
     <head>
         <link rel="apple-touch-icon" href="{logo_url}">
-        <link rel="icon" type="image/png" sizes="192x192" href="{logo_url}">
-        <link rel="shortcut icon" type="image/png" href="{logo_url}">
+        <link rel="icon" type="image/png" href="{logo_url}">
+        <link rel="shortcut icon" type="image/x-icon" href="{logo_url}">
     </head>
 """, unsafe_allow_html=True)
 
