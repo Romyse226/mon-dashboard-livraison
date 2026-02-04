@@ -3,9 +3,9 @@ from supabase import create_client
 import time
 import streamlit.components.v1 as components
 
-# ================= CONFIG (DÉFINITION DU LOGO) =================
-# On définit l'URL ici pour qu'elle soit accessible partout dans le code
-logo_url = "https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/main/mon%20logo%20mava.png"
+# ================= CONFIG =================
+# Ajout d'un paramètre ?v=1 pour forcer le rafraîchissement du logo
+logo_url = "https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/main/mon%20logo%20mava.png?v=1"
 
 st.set_page_config(
     page_title="MAVA Board",
@@ -14,10 +14,13 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Injection HTML pour l'icône de l'écran d'accueil
+# Injection HTML ultra-précise pour Android/iOS
 st.markdown(f"""
-    <link rel="apple-touch-icon" href="{logo_url}">
-    <link rel="icon" sizes="192x192" href="{logo_url}">
+    <head>
+        <link rel="apple-touch-icon" href="{logo_url}">
+        <link rel="icon" type="image/png" sizes="192x192" href="{logo_url}">
+        <link rel="shortcut icon" type="image/png" href="{logo_url}">
+    </head>
 """, unsafe_allow_html=True)
 
 # ================= SUPABASE =================
@@ -81,7 +84,7 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
-# ================= GESTION DE LA MÉMOIRE (JS) =================
+# ================= LOGIQUE JS MÉMOIRE =================
 components.html(f"""
     <script>
         const savedPhone = localStorage.getItem('mava_persistent_phone');
@@ -100,9 +103,8 @@ with col_right:
         st.session_state.dark_mode = not st.session_state.dark_mode
         st.rerun()
 
-# ================= LOGIQUE D'AFFICHAGE =================
+# ================= AFFICHAGE =================
 if "vendeur_phone" not in st.session_state:
-    # --- PAGE LOGIN ---
     st.image(logo_url, width=140)
     st.markdown("<h2 class='login-text'>Bienvenue</h2>", unsafe_allow_html=True)
     
@@ -127,7 +129,6 @@ if "vendeur_phone" not in st.session_state:
             else:
                 st.error("Numéro non reconnu.")
 else:
-    # --- DASHBOARD ---
     v_phone = st.session_state.vendeur_phone
     
     if st.button("Se déconnecter 🚪"):
@@ -145,7 +146,6 @@ else:
     def display_order(order, is_pending):
         try: prix_clean = int(float(order.get('prix', 0)))
         except: prix_clean = 0
-            
         badge = '<div class="status-badge badge-red">📦 À LIVRER</div>' if is_pending else '<div class="status-badge badge-green">✅ LIVRÉE</div>'
         
         st.markdown(f"""
@@ -162,7 +162,6 @@ else:
             if st.button("Marquer comme livrée", key=f"del_{order['id']}"):
                 supabase.table("orders").update({"statut": "Livré"}).eq("id", order['id']).execute()
                 st.rerun()
-            
             wa_num = str(order.get('phone_client', '')).replace(" ", "").replace("+", "")
             if wa_num:
                 st.markdown(f'<a href="https://wa.me/{wa_num}" target="_blank" class="wa-btn">💬 Contacter le client</a>', unsafe_allow_html=True)
@@ -170,16 +169,15 @@ else:
             if st.button("Annuler 🔄", key=f"rev_{order['id']}"):
                 supabase.table("orders").update({"statut": "En cours"}).eq("id", order['id']).execute()
                 st.rerun()
-        
         st.markdown('</div><div class="separator"></div>', unsafe_allow_html=True)
 
     with tab1:
-        p_orders = [o for o in orders if o["statut"] != "Livré"]
-        if not p_orders: st.info("Aucune commande en cours.")
-        for o in p_orders: display_order(o, True)
+        pending = [o for o in orders if o["statut"] != "Livré"]
+        if not pending: st.info("Aucune commande en cours.")
+        for o in pending: display_order(o, True)
 
     with tab2:
-        d_orders = [o for o in orders if o["statut"] == "Livré"]
-        for o in d_orders: display_order(o, False)
+        done = [o for o in orders if o["statut"] == "Livré"]
+        for o in done: display_order(o, False)
 
 st.markdown('<div class="footer">MAVA © 2026 • Stable Sync Release</div>', unsafe_allow_html=True)
