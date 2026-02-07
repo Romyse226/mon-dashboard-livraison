@@ -32,8 +32,11 @@ supabase = get_supabase()
 if "dark_mode" not in st.session_state:
     st.session_state.dark_mode = True 
 
-if "vendeur_phone" not in st.session_state and "v" in st.query_params:
-    st.session_state.vendeur_phone = st.query_params["v"]
+# Correction pour l'actualisation : on récupère le numéro depuis l'URL si session_state est vide
+if "vendeur_phone" not in st.session_state:
+    query_params = st.query_params
+    if "v" in query_params:
+        st.session_state.vendeur_phone = query_params["v"]
 
 # ================= COULEURS DYNAMIQUES =================
 bg_color = "#000000" if st.session_state.dark_mode else "#FFFFFF"
