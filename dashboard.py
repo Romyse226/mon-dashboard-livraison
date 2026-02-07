@@ -160,24 +160,24 @@ else:
         
         if is_pending:
             if st.button("Marquer comme livrée", key=f"del_{order['id']}"):
-                supabase.table("orders").update({"order_status": "Livré"}).eq("id", order['id']).execute()
+                supabase.table("orders").update({"order_statuts": "Livré"}).eq("id", order['id']).execute()
                 st.rerun()
             wa_num = str(order.get('phone_client', '')).replace(" ", "").replace("+", "")
             if wa_num:
                 st.markdown(f'<a href="https://wa.me/{wa_num}" target="_blank" class="wa-btn">💬 Contacter le client</a>', unsafe_allow_html=True)
         else:
             if st.button("Annuler 🔄", key=f"rev_{order['id']}"):
-                supabase.table("orders").update({"order_status": "À livrer"}).eq("id", order['id']).execute()
+                supabase.table("orders").update({"order_statuts": "À livrer"}).eq("id", order['id']).execute()
                 st.rerun()
         st.markdown('</div><div class="separator"></div>', unsafe_allow_html=True)
 
     with tab1:
-        pending = [o for o in orders if o["order_status"] != "Livré"]
+        pending = [o for o in orders if o["order_statuts"] != "Livré"]
         if not pending: st.info("Aucune commande en cours.")
         for o in pending: display_order(o, True)
 
     with tab2:
-        done = [o for o in orders if o["order_status"] == "Livré"]
+        done = [o for o in orders if o["order_statuts"] == "Livré"]
         for o in done: display_order(o, False)
 
 st.markdown('<div class="footer">MAVA © 2026 • Stable Sync Release</div>', unsafe_allow_html=True)
