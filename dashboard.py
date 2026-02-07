@@ -141,8 +141,12 @@ else:
     res = supabase.table("orders").select("*").eq("phone_vendeur", v_phone).order("created_at", desc=True).execute()
     orders = res.data or []
 
-    tab1, tab2 = st.tabs(["🔔 En cours", "✅ Livrées"])
+    # Calcul dynamique des compteurs
+    pending_count = len([o for o in orders if o.get("order_statuts") != "Livré"])
+    done_count = len([o for o in orders if o.get("order_statuts") == "Livré"])
 
+    # Affichage des onglets avec parenthèses
+    tab1, tab2 = st.tabs([f"🔔 En cours ({pending_count})", f"✅ Livrées ({done_count})"])
     def display_order(order, is_pending):
         try: prix_clean = int(float(order.get('prix', 0)))
         except: prix_clean = 0
