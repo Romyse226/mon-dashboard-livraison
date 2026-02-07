@@ -52,7 +52,12 @@ hr_color = "#FFFFFF" if st.session_state.dark_mode else "#000000"
 # ================= CSS DYNAMIQUE =================
 st.markdown(f"""
 <style>
-    .stApp {{ background-color: {bg_color} !important; }}
+    /* Force le pull-to-refresh sur mobile */
+    html, body, .stApp {{ 
+        background-color: {bg_color} !important; 
+        overscroll-behavior-y: contain !important; /* Autorise le refresh natif */
+    }}
+
     #MainMenu, footer, header {{visibility: hidden;}}
     .main-title {{ font-size: 2.2rem !important; font-weight: 800 !important; color: {text_color} !important; display: block; margin-top: 10px; }}
     
