@@ -8,17 +8,18 @@ logo_url = "https://raw.githubusercontent.com/Romyse226/mon-dashboard-livraison/
 
 st.set_page_config(
     page_title="MAVA Board",
-    page_icon=logo_url, # C'est ce qui fait que ça marche sur PC
+    page_icon=logo_url, 
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
-# Injection HTML spécifique pour iPhone et Android
+# Injection HTML spécifique pour iPhone et Android + Pull-to-refresh
 st.markdown(f"""
     <head>
         <link rel="apple-touch-icon" href="{logo_url}">
         <link rel="icon" type="image/png" href="{logo_url}">
         <link rel="shortcut icon" type="image/x-icon" href="{logo_url}">
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     </head>
 """, unsafe_allow_html=True)
 
@@ -28,16 +29,16 @@ def get_supabase():
     return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 supabase = get_supabase()
 
-# ================= PERSISTANCE & ÉTAT =================
+# ================= PERSISTANCE & ÉTAT (FIX CHIRURGICAL) =================
 if "dark_mode" not in st.session_state:
     st.session_state.dark_mode = True 
 
-# Correction chirurgicale : Force la récupération du numéro dans l'URL au rafraîchissement
-if "v" in st.query_params:
-    st.session_state.vendeur_phone = st.query_params["v"]
-elif "vendeur_phone" not in st.session_state:
-    # Si rien dans l'URL ni dans la session, on reste au login
-    pass
+# On récupère le paramètre 'v' directement depuis l'URL à chaque rafraîchissement
+# Streamlit traite query_params comme un dictionnaire.
+v_from_url = st.query_params.get("v")
+
+if v_from_url:
+    st.session_state.vendeur_phone = v_from_url
 
 # ================= COULEURS DYNAMIQUES =================
 bg_color = "#000000" if st.session_state.dark_mode else "#FFFFFF"
@@ -88,11 +89,12 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ================= LOGIQUE JS MÉMOIRE =================
+# On simplifie le JS pour qu'il ne s'occupe que de réécrire l'URL si elle est vide
 components.html(f"""
     <script>
         const savedPhone = localStorage.getItem('mava_persistent_phone');
-        const urlParams = new URLSearchParams(window.location.search);
-        if (savedPhone && urlParams.get('v') !== savedPhone) {{
+        const urlParams = new URLSearchParams(window.parent.location.search);
+        if (savedPhone && !urlParams.get('v')) {{
             urlParams.set('v', savedPhone);
             window.parent.location.search = urlParams.toString();
         }}
@@ -112,8 +114,8 @@ if "vendeur_phone" not in st.session_state:
     st.markdown("<h2 class='login-text'>Bienvenue</h2>", unsafe_allow_html=True)
     st.markdown(f"<p style='color:{sub_text}; margin-top:-15px; margin-bottom:20px;'>Entre ton numéro de téléphone pour suivre tes ventes</p>", unsafe_allow_html=True)
     
-    default_num = st.query_params.get("v", "")
-    phone_input = st.text_input("Numéro", value=default_num, placeholder="07XXXXXXXX", label_visibility="collapsed")
+    # Correction : on prend la valeur dans l'URL si elle existe pour l'input
+    phone_input = st.text_input("Numéro", value=v_from_url if v_from_url else "", placeholder="07XXXXXXXX", label_visibility="collapsed")
     
     if st.button("Suivre mes commandes"):
         if phone_input.strip():
@@ -122,13 +124,14 @@ if "vendeur_phone" not in st.session_state:
             
             check = supabase.table("orders").select("phone_vendeur").eq("phone_vendeur", num).limit(1).execute()
             if check.data:
+                # Écriture immédiate dans l'URL et LocalStorage
+                st.query_params["v"] = num
+                st.session_state.vendeur_phone = num
                 components.html(f"""
                     <script>
                         localStorage.setItem('mava_persistent_phone', '{num}');
-                        window.parent.location.search = '?v={num}';
                     </script>
                 """, height=0)
-                st.session_state.vendeur_phone = num
                 st.rerun()
             else:
                 st.error("Numéro non reconnu.")
@@ -136,21 +139,22 @@ else:
     v_phone = st.session_state.vendeur_phone
     
     if st.button("Se déconnecter 🚪"):
+        st.query_params.clear()
         components.html("<script>localStorage.removeItem('mava_persistent_phone'); window.parent.location.search = '';</script>", height=0)
         del st.session_state.vendeur_phone
         st.rerun()
 
     st.markdown("<span class='main-title'>Mes Commandes</span>", unsafe_allow_html=True)
 
+    # Récupération fraîche des données (se fait à chaque rafraîchissement)
     res = supabase.table("orders").select("*").eq("phone_vendeur", v_phone).order("created_at", desc=True).execute()
     orders = res.data or []
 
-    # Calcul dynamique des compteurs
     pending_count = len([o for o in orders if o.get("order_statuts") != "Livré"])
     done_count = len([o for o in orders if o.get("order_statuts") == "Livré"])
 
-    # Affichage des onglets avec parenthèses
     tab1, tab2 = st.tabs([f"🔔 En cours ({pending_count})", f"✅ Livrées ({done_count})"])
+    
     def display_order(order, is_pending):
         try: prix_clean = int(float(order.get('prix', 0)))
         except: prix_clean = 0
